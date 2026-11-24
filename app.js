@@ -17,39 +17,93 @@ function enterApp(){$('#login').classList.add('hidden');$('#app').classList.remo
 $('#logoutBtn').onclick=()=>{user=null;$('#app').classList.add('hidden');$('#login').classList.remove('hidden');$('#passwordInput').value='';$('#loginError').textContent=''};$('#helpBtn').onclick=()=>toast('Поддержка: напишите Саше в привычном мессенджере');
 function lessonRow(lesson) {
   const pupil = student(lesson.studentId);
-  return `<div class="lesson-row"><div class="time">${lesson.time}<small>${fmt(lesson.date)}</small></div><div class="student-cell"><div>${escapeHtml(pupil.name)}<small>${escapeHtml(pupil.subject)}</small></div></div><div class="lesson-price"><b>${money(lesson.price)}</b><span class="status ${lesson.paid?'':'warn'}">${lesson.paid?'Оплачено':'Ждёт оплаты'}</span>${user.role==='admin'?`<button class="${lesson.paid?'secondary':'primary'} confirm-payment" data-paid="${lesson.id}" data-payment-state="${lesson.paid?'unpaid':'paid'}">${lesson.paid?'Вернуть в ожидание':'Подтвердить оплату'}</button>`:''}</div></div>`;
+  return `<div class="lesson-row"><div class="time">${lesson.time}<small>${fmt(lesson.date)}</small></div><div class="student-cell"><div>${escapeHtml(pupil.name)}<small>${escapeHtml(pupil.subject)}</small></div></div></div>`;
 }
 function adminDashboard() {
   const today = localDay();
   const lessons = orderedLessons(data.lessons);
   const daily = lessons.filter(lesson => lesson.date === today);
-  const unpaid = lessons.filter(lesson => !lesson.paid);
-  return `<div class="quick-grid overview-actions"><button data-add="student">＋ Ученик</button><button data-add="homework">＋ Задание</button><button data-add="slot">＋ Свободное окно</button></div><div class="grid dashboard-grid"><section class="card"><div class="card-head"><div><h2>Сегодня</h2><p>${daily.length} в расписании</p></div><button class="text-btn" data-page="schedule">Расписание →</button></div>${lessonList(daily, 'Сегодня занятий нет')}</section><section class="card"><div class="card-head"><div><h2>Ждут оплаты</h2><p>${money(unpaid.reduce((sum, lesson) => sum + lesson.price, 0))}</p></div><button class="text-btn" data-page="payments">Все оплаты →</button></div>${lessonList(unpaid.slice(0, 4), 'Все занятия оплачены')}</section></div><section class="card upcoming-card"><h2>Следующие занятия</h2>${lessonList(lessons.filter(lesson => lesson.date > today).slice(0, 4), 'Предстоящих занятий пока нет')}</section>`;
+  const month = localDay().slice(0, 7);
+  const invoices = monthlyInvoices(month);
+  return `<div class="quick-grid overview-actions"><button data-add="student">＋ Ученик</button><button data-add="homework">＋ Задание</button><button data-add="slot">＋ Свободное окно</button></div><div class="grid dashboard-grid"><section class="card"><div class="card-head"><div><h2>Сегодня</h2><p>${daily.length} в расписании</p></div><button class="text-btn" data-page="schedule">Расписание →</button></div>${lessonList(daily, 'Сегодня занятий нет')}</section><section class="card"><div class="card-head"><div><h2>Оплаты за месяц</h2><p>К оплате: ${money(invoices.filter(item => !item.paid).reduce((sum, item) => sum + item.amount, 0))}</p></div><button class="text-btn" data-page="payments">Все оплаты →</button></div>${invoiceRows(invoices.filter(item => !item.paid).slice(0, 4))}</section></div><section class="card upcoming-card"><h2>Следующие занятия</h2>${lessonList(lessons.filter(lesson => lesson.date > today).slice(0, 4), 'Предстоящих занятий пока нет')}</section>`;
 }
 function personalDashboard() {
   const pupil = student(user.studentId);
   const lesson = orderedLessons(ownLessons()).find(item => item.date + 'T' + item.time >= localDay() + 'T' + new Date().toTimeString().slice(0, 5));
   const tasks = data.homework.filter(task => task.studentId === pupil.id && !task.done);
-  return `<section class="parent-hero"><div><p>Ближайшее занятие</p><h2>${lesson ? fmt(lesson.date) + ' · ' + lesson.time : 'Пока не назначено'}</h2><small>${escapeHtml(pupil.name)} · ${escapeHtml(pupil.subject)}</small></div>${lesson?`<div class="hero-price"><b>${money(lesson.price)}</b><small>${lesson.paid?'Оплачено':'Ждёт оплаты'}</small></div>`:''}</section><div class="grid dashboard-grid"><section class="card"><div class="card-head"><h2>Домашние задания</h2><button class="text-btn" data-page="homework">Все задания →</button></div>${tasks.map(task => `<div class="task-preview"><b>${escapeHtml(task.title)}</b><small>До ${fmt(task.due)}</small></div>`).join('')||'<p class="empty">Новых заданий нет</p>'}</section><section class="card"><div class="card-head"><h2>Свободные окна</h2><button class="text-btn" data-page="slots">Посмотреть →</button></div>${data.slots.filter(slot=>slot.date>=localDay()).slice(0,3).map(slot=>`<div class="task-preview"><b>${fmt(slot.date)} · ${slot.time}</b><small>${slot.duration} мин.</small></div>`).join('')||'<p class="empty">Свободных окон пока нет</p>'}</section></div>`;
+  return `<section class="parent-hero"><div><p>Ближайшее занятие</p><h2>${lesson ? fmt(lesson.date) + ' · ' + lesson.time : 'Пока не назначено'}</h2><small>${escapeHtml(pupil.name)} · ${escapeHtml(pupil.subject)}</small></div><button class="secondary" data-page="payments">Оплата за месяц →</button></section><div class="grid dashboard-grid"><section class="card"><div class="card-head"><h2>Домашние задания</h2><button class="text-btn" data-page="homework">Все задания →</button></div>${tasks.map(task => `<div class="task-preview"><b>${escapeHtml(task.title)}</b><small>До ${fmt(task.due)}</small></div>`).join('')||'<p class="empty">Новых заданий нет</p>'}</section><section class="card"><div class="card-head"><h2>Свободные окна</h2><button class="text-btn" data-page="slots">Посмотреть →</button></div>${data.slots.filter(slot=>slot.date>=localDay()).slice(0,3).map(slot=>`<div class="task-preview"><b>${fmt(slot.date)} · ${slot.time}</b><small>${slot.duration} мин.</small></div>`).join('')||'<p class="empty">Свободных окон пока нет</p>'}</section></div>`;
 }
 function studentsPage(){return `<div class="section-head"><div><h2>Ученики</h2><p>Контакты, обучение и стоимость занятий</p></div><button class="primary" data-add="student">＋ Новый ученик</button></div><div class="toolbar"><input class="search" placeholder="⌕  Найти ученика или родителя"></div><div class="data-table"><div class="table-head"><span>Ученик</span><span>Родитель</span><span>Направление</span><span>За занятие</span></div>${data.students.map(s=>`<div class="table-row"><div class="student-cell"><span class="mini-avatar">${initials(s.name)}</span><div>${escapeHtml(s.name)}<small>${escapeHtml(s.phone)}</small></div></div><span>${escapeHtml(s.parent)}</span><span>${escapeHtml(s.subject)}</span><span>${money(s.price)}</span></div>`).join('')}</div>`}
 function schedulePage() {
   return `<section class="card"><div class="card-head"><h2>Занятия</h2></div>${lessonList(orderedLessons(ownLessons()), 'Занятий пока нет')}</section>`;
 }
 function homeworkPage(){let hs=user.role==='admin'?data.homework:data.homework.filter(x=>x.studentId===user.studentId);return `<div class="section-head"><div><h2>Домашние задания</h2><p>${user.role==='admin'?'Создавайте и проверяйте задания':'Задания от преподавателя'}</p></div>${user.role==='admin'?'<button class="primary" data-add="homework">＋ Задание</button>':''}</div><div class="card">${hs.map(x=>{let s=student(x.studentId);return `<div class="lesson-row"><div><input type="checkbox" data-check="${x.id}" ${x.done?'checked':''} ${user.role!=='admin'?'disabled':''}></div><div class="student-cell"><div>${escapeHtml(x.title)}<small>${escapeHtml(s.name)} · до ${fmt(x.due)}</small></div></div><span class="status ${x.done?'':'warn'}">${x.done?'Выполнено':'В работе'}</span></div>`}).join('')||'<div class="empty">Заданий нет</div>'}</div>`}
+let selectedMonth = '';
+function monthlyInvoices(month) {
+  const pupils = user.role === 'admin' ? data.students : data.students.filter(pupil => pupil.id === user.studentId);
+  return pupils.flatMap(pupil => {
+    const saved = data.monthlyPayments?.[month + ':' + pupil.id];
+    return saved ? [{ pupil, ...saved }] : [];
+  });
+}
+function invoiceRows(invoices) {
+  return invoices.map(({pupil, count, amount, paid}) => `<div class="lesson-row invoice-row"><div class="student-cell">${escapeHtml(pupil.name)}</div><div>Занятий: ${count}<br><b>${money(amount)}</b></div><div class="lesson-price"><span class="status ${paid ? '' : 'warn'}">${paid ? 'Оплачено' : 'Ждёт оплаты'}</span>${user.role === 'admin' && currentPage === 'payments' ? `<button class="${paid ? 'secondary' : 'primary'} confirm-payment" data-invoice="${pupil.id}">${paid ? 'Вернуть в ожидание' : 'Подтвердить перевод'}</button>` : ''}</div></div>`).join('') || '<p class="empty">За этот месяц абонементов пока нет</p>';
+}
 function paymentsPage() {
-  const lessons = orderedLessons(ownLessons());
-  return `<div class="grid dashboard-grid"><section class="card"><div class="card-head"><div><h2>Ждут оплаты</h2>${user.role==='admin'?'<p>После получения перевода подтвердите оплату у нужного занятия.</p>':''}</div></div>${lessonList(lessons.filter(lesson => !lesson.paid), 'Нет занятий, ожидающих оплаты. Новые занятия появятся здесь после добавления.')}</section><section class="card"><div class="card-head"><h2>Оплачено</h2></div>${lessonList(lessons.filter(lesson => lesson.paid).reverse(), 'Оплат пока нет')}</section></div>`;
+  const month = selectedMonth || localDay().slice(0, 7);
+  return `<section class="card"><div class="card-head"><h2>Абонементы</h2>${user.role === 'admin' ? '<button class="primary" data-add="subscription">Создать абонемент</button>' : ''}<label>Месяц <input type="month" id="billingMonth" value="${month}"></label></div>${invoiceRows(monthlyInvoices(month))}</section>`;
 }
 function slotsPage(){return `<div class="section-head"><div><h2>Свободные окна</h2><p>${user.role==='admin'?'Настройте время, которое увидят семьи':'Уточните запись у Саши'}</p></div>${user.role==='admin'?'<button class="primary" data-add="slot">＋ Добавить окно</button>':''}</div><div class="grid slot-layout">${data.slots.filter(slot=>slot.date>=localDay()).map(x=>`<div class="card"><small style="color:var(--purple);font-weight:800">${fmt(x.date)}</small><h2 style="font-size:24px;margin:8px 0">${x.time}</h2><p style="font-size:8px;color:var(--muted)">${x.duration} минут</p>${user.role==='admin'?'<span class="status">Опубликовано</span>':'<span class="status">Свободно</span>'}</div>`).join('')}</div>`}
-function go(page){if (!user || !navs[user.role].some(item => item[0] === page)) return;currentPage=page;$$('.nav-button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));let titles={dashboard:user.role==='admin'?'Добрый день, Саша!':'Личный кабинет',students:'Ученики',schedule:'Расписание',homework:'Домашние задания',payments:'Оплаты занятий',slots:'Свободные окна'};$('#pageTitle').textContent=titles[page];$('#primaryAction').style.display=user.role==='admin'?'block':'none';let html=page==='dashboard'?(user.role==='admin'?adminDashboard():personalDashboard()):page==='students'?studentsPage():page==='schedule'?schedulePage():page==='homework'?homeworkPage():page==='payments'?paymentsPage():slotsPage();$('#content').innerHTML=html}
-const field=(l,n,t='text',full=false)=>`<div class="field ${full?'full':''}"><label for="field-${n}">${l}</label><input id="field-${n}" name="${n}" type="${t}" ${n==='price'?'min="0" step="0.01"':n==='duration'?'min="1"':''} required></div>`,studentSelect=()=>`<div class="field full"><label for="field-studentId">Ученик</label><select id="field-studentId" name="studentId" required>${data.students.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}</select></div>`;
-function openForm(type){if(user?.role!=='admin') return;let map={student:['Карточка ученика','Новый ученик'],lesson:['Расписание','Новое занятие'],homework:['Обучение','Новое задание'],slot:['Расписание','Свободное окно']},body='';$('#modalKicker').textContent=map[type][0];$('#modalTitle').textContent=map[type][1];$('#modalForm').dataset.type=type;if(type==='student')body=field('Имя ученика','name')+field('Имя родителя','parent')+field('Телефон','phone','tel')+field('Направление','subject')+field('Цена занятия','price','number');if(type==='lesson')body=studentSelect()+field('Дата','date','date')+field('Время','time','time')+field('Стоимость урока, ₽','price','number');if(type==='homework')body=studentSelect()+field('Задание','title', 'text',true)+field('Срок','due','date');if(type==='slot')body=field('Дата','date','date')+field('Время','time','time')+field('Длительность, минут','duration','number');$('#modalBody').innerHTML=body;if(type==='lesson'){const form=$('#modalForm');const update=()=>{form.elements.price.value=student(form.elements.studentId.value)?.price??''};form.elements.studentId.onchange=update;update()}$('#modal').showModal();$('#modalBody').querySelector('input, select')?.focus()}
-$('#modalForm').onsubmit=e=>{e.preventDefault();if(user?.role!=='admin')return;let f=Object.fromEntries(new FormData(e.target)),t=e.target.dataset.type;f.id=Date.now();if(t==='student'){f.price=+f.price;f.status='Активен';data.students.push(f)}if(t==='lesson'){f.studentId=+f.studentId;f.price=+f.price;if(!student(f.studentId)||f.price<0)return;f.paid=false;data.lessons.push(f)}if(t==='homework'){f.studentId=+f.studentId;f.done=false;data.homework.push(f)}if(t==='slot'){f.duration=+f.duration;data.slots.push(f)}save();$('#modal').close();go(currentPage);toast('Сохранено')};
-document.onclick=e=>{let p=e.target.closest('[data-page]'),a=e.target.closest('[data-add]');if(p)go(p.dataset.page);if(a)openForm(a.dataset.add);const paid=e.target.closest('[data-paid]');if(paid&&user?.role==='admin'){const lesson=data.lessons.find(item=>String(item.id)===paid.dataset.paid);if(lesson){const nextPaid=paid.dataset.paymentState==='paid';if(lesson.paid!==nextPaid){lesson.paid=nextPaid;save();go(currentPage);toast(nextPaid?'Оплата подтверждена':'Занятие снова ждёт оплаты')}}}if(user?.role==='admin'&&e.target.dataset.check){data.homework.find(x=>x.id==e.target.dataset.check).done=e.target.checked;save();go(currentPage)}if(e.target.closest('[data-dismiss-modal]'))e.target.closest('dialog').close()};$('#primaryAction').onclick=()=>openForm('lesson');
+function go(page){if (!user || !navs[user.role].some(item => item[0] === page)) return;currentPage=page;$$('.nav-button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));let titles={dashboard:user.role==='admin'?'Добрый день, Саша!':'Личный кабинет',students:'Ученики',schedule:'Расписание',homework:'Домашние задания',payments:'Оплаты за месяц',slots:'Свободные окна'};$('#pageTitle').textContent=titles[page];$('#primaryAction').style.display=user.role==='admin'?'block':'none';let html=page==='dashboard'?(user.role==='admin'?adminDashboard():personalDashboard()):page==='students'?studentsPage():page==='schedule'?schedulePage():page==='homework'?homeworkPage():page==='payments'?paymentsPage():slotsPage();$('#content').innerHTML=html}
+const field=(l,n,t='text',full=false)=>`<div class="field ${full?'full':''}"><label for="field-${n}">${l}</label><input id="field-${n}" name="${n}" type="${t}" ${n==='price'?'min="0" step="0.01"':(n==='duration'||n==='count')?'min="1"':''} required></div>`,studentSelect=()=>`<div class="field full"><label for="field-studentId">Ученик</label><select id="field-studentId" name="studentId" required>${data.students.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}</select></div>`;
+function openForm(type){if(user?.role!=='admin') return;let map={subscription:['Оплаты','Новый абонемент'],student:['Карточка ученика','Новый ученик'],lesson:['Расписание','Новое занятие'],homework:['Обучение','Новое задание'],slot:['Расписание','Свободное окно']},body='';$('#modalKicker').textContent=map[type][0];$('#modalTitle').textContent=map[type][1];$('#modalForm').dataset.type=type;if(type==='subscription')body=studentSelect()+field('Месяц','month','month')+field('Количество занятий','count','number')+field('Сумма, ₽','price','number');if(type==='student')body=field('Имя ученика','name')+field('Имя родителя','parent')+field('Телефон','phone','tel')+field('Направление','subject')+field('Цена занятия','price','number');if(type==='lesson')body=studentSelect()+field('Дата','date','date')+field('Время','time','time')+field('Стоимость урока, ₽','price','number');if(type==='homework')body=studentSelect()+field('Задание','title', 'text',true)+field('Срок','due','date');if(type==='slot')body=field('Дата','date','date')+field('Время','time','time')+field('Длительность, минут','duration','number');$('#modalBody').innerHTML=body;if(type==='subscription')$('#modalForm').elements.month.value=selectedMonth||localDay().slice(0,7);if(type==='lesson'){const form=$('#modalForm');const update=()=>{form.elements.price.value=student(form.elements.studentId.value)?.price??''};form.elements.studentId.onchange=update;update()}$('#modal').showModal();$('#modalBody').querySelector('input, select')?.focus()}
+$('#modalForm').onsubmit=e=>{e.preventDefault();if(user?.role!=='admin')return;let f=Object.fromEntries(new FormData(e.target)),t=e.target.dataset.type;f.id=Date.now();if(t==='subscription'){
+  if (!createSubscription(f)) return;
+  $('#modal').close();
+  go('payments');
+  toast('Абонемент создан');
+  return;
+}if(t==='student'){f.price=+f.price;f.status='Активен';data.students.push(f)}if(t==='lesson'){f.studentId=+f.studentId;f.price=+f.price;if(!student(f.studentId)||f.price<0)return;f.paid=false;data.lessons.push(f)}if(t==='homework'){f.studentId=+f.studentId;f.done=false;data.homework.push(f)}if(t==='slot'){f.duration=+f.duration;data.slots.push(f)}save();$('#modal').close();go(currentPage);toast('Сохранено')};
+document.onclick=e=>{let p=e.target.closest('[data-page]'),a=e.target.closest('[data-add]');if(p)go(p.dataset.page);if(a)openForm(a.dataset.add);const invoice=e.target.closest('[data-invoice]');if(invoice&&user?.role==='admin')updateInvoice(Number(invoice.dataset.invoice));if(user?.role==='admin'&&e.target.dataset.check){data.homework.find(x=>x.id==e.target.dataset.check).done=e.target.checked;save();go(currentPage)}if(e.target.closest('[data-dismiss-modal]'))e.target.closest('dialog').close()};$('#primaryAction').onclick=()=>openForm('lesson');
 function toast(t){let x=$('#toast');x.textContent=t;x.classList.add('show');setTimeout(()=>x.classList.remove('show'),2200)}
 document.addEventListener('input', event => {
   if (!event.target.matches('.search')) return;
   const query = event.target.value.trim().toLowerCase();
   for (const row of $$('.table-row')) row.hidden = !row.textContent.toLowerCase().includes(query);
 });
+document.addEventListener('change', event => {
+  if (event.target.id !== 'billingMonth' || !/^\d{4}-\d{2}$/.test(event.target.value)) return;
+  selectedMonth = event.target.value;
+  go('payments');
+});
+function updateInvoice(studentId) {
+  const month = selectedMonth || localDay().slice(0, 7);
+  const invoice = monthlyInvoices(month).find(item => item.pupil.id === studentId);
+  if (!invoice) return;
+  data.monthlyPayments ??= {};
+  const key = month + ':' + studentId;
+  data.monthlyPayments[key] = {paid: !invoice.paid, count: invoice.count, amount: invoice.amount};
+  save();
+  go('payments');
+  toast(invoice.paid ? 'Оплата возвращена в ожидание' : 'Оплата за месяц подтверждена');
+}
+function createSubscription(form) {
+  const pupil = student(form.studentId);
+  const count = Number(form.count);
+  const amount = Number(form.price);
+  if (!pupil || !/^\d{4}-(0[1-9]|1[0-2])$/.test(form.month) ||
+      !Number.isSafeInteger(count) || count < 1 || !form.price || !Number.isFinite(amount) || amount < 0) {
+    toast('Проверьте ученика, месяц, число занятий и сумму');
+    return false;
+  }
+  data.monthlyPayments ??= {};
+  const key = form.month + ':' + pupil.id;
+  if (data.monthlyPayments[key]) {
+    toast('У этого ученика уже есть абонемент на выбранный месяц');
+    return false;
+  }
+  data.monthlyPayments[key] = {count, amount, paid: false};
+  selectedMonth = form.month;
+  save();
+  return true;
+}
