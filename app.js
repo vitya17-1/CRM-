@@ -55,7 +55,9 @@ function personalDashboard() {
   const pupil = student(user.studentId);
   const lesson = orderedLessons(ownLessons()).find(item => item.date + 'T' + item.time >= localDay() + 'T' + new Date().toTimeString().slice(0, 5));
   const tasks = data.homework.filter(task => task.studentId === pupil.id && !task.done);
-  return `<section class="parent-hero"><div><p>Ближайшее занятие</p><h2>${lesson ? fmt(lesson.date) + ' · ' + lesson.time : 'Пока не назначено'}</h2><small>${escapeHtml(pupil.name)} · ${escapeHtml(pupil.subject)}</small></div><button class="secondary" data-page="payments">Оплата за месяц →</button></section><div class="grid dashboard-grid"><section class="card"><div class="card-head"><h2>Домашние задания</h2><button class="text-btn" data-page="homework">Все задания →</button></div>${tasks.map(task => `<div class="task-preview"><b>${escapeHtml(task.title)}</b><small>До ${fmt(task.due)}</small></div>`).join('')||'<p class="empty">Новых заданий нет</p>'}</section><section class="card"><div class="card-head"><h2>Свободные окна</h2><button class="text-btn" data-page="slots">Посмотреть →</button></div>${data.slots.filter(slot=>slot.date>=localDay()).slice(0,3).map(slot=>`<div class="task-preview"><b>${fmt(slot.date)} · ${slot.time}</b><small>${slot.duration} мин.</small></div>`).join('')||'<p class="empty">Свободных окон пока нет</p>'}</section></div>`;
+  const notices = ownLessons().filter(item => item.notify === 'yes').slice(-3).reverse();
+  const noticePanel = notices.length ? `<section class="card calendar-notices"><h2>Уведомления</h2>${notices.map(item => `<div class="task-preview"><b>Запланирован урок</b><small>${fmt(item.date)} · ${item.time}</small></div>`).join('')}</section>` : '';
+  return `${noticePanel}<section class="parent-hero"><div><p>Ближайшее занятие</p><h2>${lesson ? fmt(lesson.date) + ' · ' + lesson.time : 'Пока не назначено'}</h2><small>${escapeHtml(pupil.name)} · ${escapeHtml(pupil.subject)}</small></div><button class="secondary" data-page="payments">Оплата за месяц →</button></section><div class="grid dashboard-grid"><section class="card"><div class="card-head"><h2>Домашние задания</h2><button class="text-btn" data-page="homework">Все задания →</button></div>${tasks.map(task => `<div class="task-preview"><b>${escapeHtml(task.title)}</b><small>До ${fmt(task.due)}</small></div>`).join('')||'<p class="empty">Новых заданий нет</p>'}</section><section class="card"><div class="card-head"><h2>Свободные окна</h2><button class="text-btn" data-page="slots">Посмотреть →</button></div>${data.slots.filter(slot=>slot.date>=localDay()).slice(0,3).map(slot=>`<div class="task-preview"><b>${fmt(slot.date)} · ${slot.time}</b><small>${slot.duration} мин.</small></div>`).join('')||'<p class="empty">Свободных окон пока нет</p>'}</section></div>`;
 }
 function studentsPage(){return `<div class="section-head"><div><h2>Ученики</h2><p>Контакты, обучение и стоимость занятий</p></div><button class="primary" data-add="student">＋ Новый ученик</button></div><div class="toolbar"><input class="search" placeholder="⌕  Найти ученика или родителя"></div><div class="data-table"><div class="table-head"><span>Ученик</span><span>Родитель</span><span>Направление</span><span>За занятие</span></div>${data.students.map(s=>`<div class="table-row"><div class="student-cell"><span class="mini-avatar">${initials(s.name)}</span><div>${escapeHtml(s.name)}<small>${escapeHtml(s.phone)}</small></div></div><span>${escapeHtml(s.parent)}</span><span>${escapeHtml(s.subject)}</span><div>${money(s.price)}<br><button class="text-btn" data-docs="${s.id}">📎 Документы</button></div></div>`).join('')}</div>`}
 let calendarDate;
@@ -69,6 +71,7 @@ function shiftCalendarDate(date, days) {
 
 function schedulePage() {
   calendarDate ||= localDay();
+  if (calendarView === 'month') return monthCalendar();
   const weekday = new Date(calendarDate + 'T12:00').getDay();
   const start = calendarView === 'week' ? shiftCalendarDate(calendarDate, -((weekday + 6) % 7)) : calendarDate;
   const dates = Array.from({length: calendarView === 'week' ? 7 : 1}, (_, i) => shiftCalendarDate(start, i));
@@ -78,12 +81,36 @@ function schedulePage() {
   const lastHour = Math.max(20, ...hours);
   const rows = Array.from({length: lastHour - firstHour + 1}, (_, index) => {
     const hour = String(firstHour + index).padStart(2, '0');
-    return `<tr><th scope="row">${hour}:00</th>${dates.map(date => `<td>${lessons.filter(lesson => lesson.date === date && lesson.time.startsWith(hour + ':')).map(lesson => {
+    return `<tr><th scope="row">${hour}:00</th>${dates.map(date => `<td>${calendarSlot(date, hour + ':00')}${lessons.filter(lesson => lesson.date === date && lesson.time.startsWith(hour + ':')).map(lesson => {
       const pupil = student(lesson.studentId);
       return `<button class="calendar-lesson" type="button" data-lesson-details="${lesson.id}"><strong>${lesson.time} · ${escapeHtml(pupil.name)}</strong><small>${escapeHtml(pupil.subject)}</small></button>`;
     }).join('')}</td>`).join('')}</tr>`;
   }).join('');
-  return `<section class="card"><div class="calendar-toolbar"><div><button class="secondary" data-calendar="today">Сегодня</button> <button class="secondary" data-calendar="prev" aria-label="Предыдущий период">←</button> <button class="secondary" data-calendar="next" aria-label="Следующий период">→</button></div><h2>${fmt(start)}${dates.length > 1 ? ' — ' + fmt(dates.at(-1)) : ''}</h2><div><button class="secondary" data-calendar="day" aria-pressed="${calendarView === 'day'}">День</button> <button class="secondary" data-calendar="week" aria-pressed="${calendarView === 'week'}">Неделя</button></div></div><div class="calendar-scroll" tabindex="0" aria-label="Календарь занятий"><table class="calendar-table ${calendarView}"><thead><tr><th scope="col">Время</th>${dates.map(date => `<th scope="col" class="${date === localDay() ? 'calendar-today' : ''}">${fmt(date)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  return `<section class="card"><div class="calendar-toolbar"><div><button class="secondary" data-calendar="today">Сегодня</button> <button class="secondary" data-calendar="prev" aria-label="Предыдущий период">←</button> <button class="secondary" data-calendar="next" aria-label="Следующий период">→</button></div><h2>${fmt(start)}${dates.length > 1 ? ' — ' + fmt(dates.at(-1)) : ''}</h2>${calendarViews()}</div><div class="calendar-scroll" tabindex="0" aria-label="Календарь занятий"><table class="calendar-table ${calendarView}"><thead><tr><th scope="col">Время</th>${dates.map(date => `<th scope="col" class="${date === localDay() ? 'calendar-today' : ''}">${fmt(date)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+}
+
+function calendarViews() {
+  return '<div>' + [['day','День'],['week','Неделя'],['month','Месяц']].map(([key, label]) =>
+    `<button class="secondary" data-calendar="${key}" aria-pressed="${calendarView === key}">${label}</button>`).join(' ') + '</div>';
+}
+function calendarSlot(date, time) {
+  if (user.role !== 'admin' || data.lessons.some(lesson => lesson.date === date && lesson.time === time)) return '';
+  return `<button type="button" class="calendar-slot" data-slot-date="${date}" data-slot-time="${time}" aria-label="Запланировать урок: ${fmt(date)}, ${time}">＋</button>`;
+}
+function monthCalendar() {
+  const month = calendarDate.slice(0, 7);
+  const first = month + '-01';
+  const date = new Date(first + 'T12:00');
+  const offset = (date.getDay() + 6) % 7;
+  const start = shiftCalendarDate(first, -offset);
+  const lessons = ownLessons();
+  const cells = Array.from({length: 42}, (_, index) => {
+    const day = shiftCalendarDate(start, index);
+    const count = lessons.filter(lesson => lesson.date === day).length;
+    return `<button class="month-cell ${day.startsWith(month) ? '' : 'outside-month'}" data-calendar-date="${day}" ${day === localDay() ? 'aria-current="date"' : ''} aria-label="${fmt(day)}, занятий: ${count}"><strong>${Number(day.slice(-2))}</strong>${count ? `<small>${count} <span>ур.</span></small>` : ''}</button>`;
+  }).join('');
+  const label = date.toLocaleDateString('ru-RU', {month: 'long', year: 'numeric'});
+  return `<section class="card"><div class="calendar-toolbar"><div><button class="secondary" data-calendar="today">Сегодня</button> <button class="secondary" data-calendar="prev" aria-label="Предыдущий месяц">←</button> <button class="secondary" data-calendar="next" aria-label="Следующий месяц">→</button></div><h2>${label}</h2>${calendarViews()}</div><div class="month-grid">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(day => `<span>${day}</span>`).join('')}${cells}</div></section>`;
 }
 
 function zoomUrl(value) {
@@ -129,10 +156,24 @@ function openLessonDetails(lesson) {
 }
 
 document.addEventListener('click', event => {
+  const slot = event.target.closest('[data-slot-date]');
+  if (slot && user?.role === 'admin') openForm('lesson', {date: slot.dataset.slotDate, time: slot.dataset.slotTime});
+  const day = event.target.closest('[data-calendar-date]');
+  if (day && user && currentPage === 'schedule') {
+    calendarDate = day.dataset.calendarDate;
+    calendarView = 'day';
+    go('schedule');
+    $('[data-calendar="day"]')?.focus();
+  }
   const command = event.target.closest('[data-calendar]')?.dataset.calendar;
   if (command && user && currentPage === 'schedule') {
     if (command === 'today') calendarDate = localDay();
-    else if (command === 'day' || command === 'week') calendarView = command;
+    else if (['day', 'week', 'month'].includes(command)) calendarView = command;
+    else if (calendarView === 'month') {
+      const date = new Date(calendarDate.slice(0, 7) + '-01T12:00');
+      date.setMonth(date.getMonth() + (command === 'prev' ? -1 : 1));
+      calendarDate = date.toLocaleDateString('sv-SE');
+    }
     else calendarDate = shiftCalendarDate(calendarDate, (command === 'prev' ? -1 : 1) * (calendarView === 'week' ? 7 : 1));
     go('schedule');
     $(`[data-calendar="${command}"]`)?.focus();
@@ -161,7 +202,7 @@ function paymentsPage() {
 function slotsPage(){return `<div class="section-head"><div><h2>Свободные окна</h2><p>${user.role==='admin'?'Настройте время, которое увидят семьи':'Уточните запись у Саши'}</p></div>${user.role==='admin'?'<button class="primary" data-add="slot">＋ Добавить окно</button>':''}</div><div class="grid slot-layout">${data.slots.filter(slot=>slot.date>=localDay()).map(x=>`<div class="card"><small style="color:var(--purple);font-weight:800">${fmt(x.date)}</small><h2 style="font-size:24px;margin:8px 0">${x.time}</h2><p style="font-size:8px;color:var(--muted)">${x.duration} минут</p>${user.role==='admin'?'<span class="status">Опубликовано</span>':'<span class="status">Свободно</span>'}</div>`).join('')}</div>`}
 function go(page){if (!user || !navs[user.role].some(item => item[0] === page)) return;currentPage=page;$$('.nav-button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));let titles={dashboard:user.role==='admin'?'Добрый день, Саша!':'Личный кабинет',students:'Ученики',schedule:'Расписание',homework:'Домашние задания',payments:'Оплаты за месяц',slots:'Свободные окна'};$('#pageTitle').textContent=titles[page];$('#primaryAction').style.display=user.role==='admin'?'block':'none';let html=page==='dashboard'?(user.role==='admin'?adminDashboard():personalDashboard()):page==='students'?studentsPage():page==='schedule'?schedulePage():page==='homework'?homeworkPage():page==='payments'?paymentsPage():slotsPage();$('#content').innerHTML=html}
 const field=(l,n,t='text',full=false)=>`<div class="field ${full?'full':''}"><label for="field-${n}">${l}</label><input id="field-${n}" name="${n}" type="${t}" ${n==='price'?'min="0" step="0.01"':(n==='duration'||n==='count')?'min="1"':''} required></div>`,studentSelect=()=>`<div class="field full"><label for="field-studentId">Ученик</label><select id="field-studentId" name="studentId" required>${data.students.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}</select></div>`;
-function openForm(type){if(user?.role!=='admin') return;let map={subscription:['Оплаты','Новый абонемент'],student:['Карточка ученика','Новый ученик'],lesson:['Расписание','Запланировать урок'],homework:['Обучение','Новое задание'],slot:['Расписание','Свободное окно']},body='';$('#modalKicker').textContent=map[type][0];$('#modalTitle').textContent=map[type][1];$('#modalForm').dataset.type=type;if(type==='subscription')body=studentSelect()+field('Месяц','month','month')+field('Количество занятий','count','number')+field('Сумма, ₽','price','number');if(type==='student')body=field('Имя ученика','name')+field('Имя родителя','parent')+field('Телефон','phone','tel')+field('Направление','subject')+field('Цена занятия','price','number');if(type==='lesson')body=studentSelect()+field('Дата','date','date')+field('Время','time','time')+'<p id="lessonSubscriptionNote" class="field full subscription-note" aria-live="polite"></p>';if(type==='homework')body=studentSelect()+field('Задание','title', 'text',true)+field('Срок','due','date');if(type==='slot')body=field('Дата','date','date')+field('Время','time','time')+field('Длительность, минут','duration','number');$('#modalBody').innerHTML=body;if(type==='subscription')$('#modalForm').elements.month.value=selectedMonth||localDay().slice(0,7);if(type==='lesson'){const form=$('#modalForm');const update=()=>previewLessonSubscription(form);form.elements.studentId.onchange=update;form.elements.date.onchange=update;update()}$('#modal').showModal();$('#modalBody').querySelector('input, select')?.focus()}
+function openForm(type, preset = {}){if(user?.role!=='admin') return;let map={subscription:['Оплаты','Новый абонемент'],student:['Карточка ученика','Новый ученик'],lesson:['Расписание','Запланировать урок'],homework:['Обучение','Новое задание'],slot:['Расписание','Свободное окно']},body='';$('#modalKicker').textContent=map[type][0];$('#modalTitle').textContent=map[type][1];$('#modalForm').dataset.type=type;if(type==='subscription')body=studentSelect()+field('Месяц','month','month')+field('Количество занятий','count','number')+field('Сумма, ₽','price','number');if(type==='student')body=field('Имя ученика','name')+field('Имя родителя','parent')+field('Телефон','phone','tel')+field('Направление','subject')+field('Цена занятия','price','number');if(type==='lesson')body=studentSelect()+field('Дата','date','date')+field('Время','time','time')+'<p id="lessonSubscriptionNote" class="field full subscription-note" aria-live="polite"></p><label class="field full calendar-notify"><span><input type="checkbox" name="notify" value="yes"> Показать уведомление в кабинете семьи</span></label>';if(type==='homework')body=studentSelect()+field('Задание','title', 'text',true)+field('Срок','due','date');if(type==='slot')body=field('Дата','date','date')+field('Время','time','time')+field('Длительность, минут','duration','number');$('#modalBody').innerHTML=body;if(type==='subscription')$('#modalForm').elements.month.value=selectedMonth||localDay().slice(0,7);if(type==='lesson'){const form=$('#modalForm');form.elements.date.value=preset.date||'';form.elements.time.value=preset.time||'';const update=()=>previewLessonSubscription(form);form.elements.studentId.onchange=update;form.elements.date.onchange=update;update()}$('#modal').showModal();$('#modalBody').querySelector('input, select')?.focus()}
 $('#modalForm').onsubmit=e=>{e.preventDefault();if(user?.role!=='admin')return;let f=Object.fromEntries(new FormData(e.target)),t=e.target.dataset.type;f.id=Date.now();if(t==='subscription'){
   if (!createSubscription(f)) return;
   $('#modal').close();
@@ -176,6 +217,11 @@ $('#modalForm').onsubmit=e=>{e.preventDefault();if(user?.role!=='admin')return;l
     toast('На выбранный месяц уже запланированы все уроки пакета');
     return;
   }
+  if (data.lessons.some(lesson => lesson.date === f.date && lesson.time === f.time)) {
+    toast('На это время уже запланирован урок');
+    return;
+  }
+  if (currentPage === 'schedule') calendarDate = f.date;
   data.lessons.push(f);
 }if(t==='homework'){f.studentId=+f.studentId;f.done=false;data.homework.push(f)}if(t==='slot'){f.duration=+f.duration;data.slots.push(f)}save();$('#modal').close();go(currentPage);toast('Сохранено')};
 document.onclick=e=>{let p=e.target.closest('[data-page]'),a=e.target.closest('[data-add]');if(p)go(p.dataset.page);if(a)openForm(a.dataset.add);const invoice=e.target.closest('[data-invoice]');if(invoice&&user?.role==='admin')updateInvoice(Number(invoice.dataset.invoice));if(user?.role==='admin'&&e.target.dataset.check){data.homework.find(x=>x.id==e.target.dataset.check).done=e.target.checked;save();go(currentPage)}if(e.target.closest('[data-dismiss-modal]'))e.target.closest('dialog').close()};$('#primaryAction').onclick=()=>openForm('lesson');

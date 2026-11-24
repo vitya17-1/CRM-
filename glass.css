@@ -29,6 +29,31 @@ body {
   .login-visual.portrait-cover { display: flex; min-height: clamp(270px, 47vw, 440px); }
   .login-form .mobile-logo { display: none; }
 }
+@media (max-width: 600px) {
+  .login-visual.portrait-cover { min-height: 0; padding: 0; background: #f3edf6; }
+  .login-visual.portrait-cover::after { display: none; }
+  .portrait-cover .cover-photo {
+    position: static; z-index: auto; display: block;
+    height: clamp(150px, 43vw, 245px); object-position: center 30%;
+  }
+  .portrait-cover .login-message { padding: 13px 18px 16px; color: var(--ink); }
+  .portrait-cover .login-message h1 { font-size: clamp(23px, 6vw, 32px); line-height: 1.1; }
+  .portrait-cover .login-message h1 br { display: none; }
+  .portrait-cover .login-message p { color: var(--muted); font-size: 13px; line-height: 1.4; }
+  .portrait-cover .login-message .cover-brand { margin-bottom: 5px; font-size: 11px; }
+  .portrait-cover .login-message .cover-description { margin-top: 6px; max-width: none; }
+  .portrait-cover .login-message .cover-preparation { margin-top: 4px; }
+  .login-screen { display: flex; flex-direction: column; }
+  .login-screen .login-panel { padding: 10px 12px calc(14px + env(safe-area-inset-bottom)); }
+  .login-screen .login-form { padding: 14px; border-radius: 18px; }
+  .login-screen .login-form h2 { margin: 4px 0; font-size: 24px; }
+  .login-screen .login-form > p { margin: 4px 0 10px; }
+  .login-screen .login-form > label { margin-top: 8px; }
+  .login-screen .input-wrap { height: 44px; margin-top: 4px; }
+  .login-screen .input-wrap input { font-size: 16px; }
+  .login-screen .login-options { margin: 2px 0; justify-content: flex-end; }
+  .login-screen .login-error:empty { display: none; }
+}
 .login-visual {
   color: var(--ink);
   background: radial-gradient(circle at 66% 38%, #fdf7f1, transparent 55%), linear-gradient(145deg, #ece2f4, #dcd0eb);
@@ -137,6 +162,17 @@ dialog[open]::backdrop { animation: glass-backdrop 240ms ease-out both; }
 .calendar-table td { height: 42px; }
 .calendar-lesson { display: grid; width: 100%; text-align: left; gap: 4px; border: 0; border-left: 3px solid var(--purple); padding: 7px; margin-bottom: 4px; border-radius: 7px; background: #ede4f5; color: var(--ink); cursor: pointer; overflow-wrap: anywhere; }
 .calendar-lesson:hover { background: #e2d3ef; }
+.calendar-slot { width: 100%; min-height: 32px; border: 0; border-radius: 7px; background: transparent; color: var(--purple); cursor: pointer; }
+.calendar-slot:hover, .calendar-slot:focus-visible { background: #eee4f5; }
+.month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.month-grid > span { text-align: center; color: var(--muted); font-size: 12px; padding: 5px 0; }
+.month-cell { display: grid; justify-items: start; align-content: space-between; gap: 4px; min-height: 54px; padding: 5px; border: 1px solid var(--line); border-radius: 8px; background: #faf7fc; color: var(--ink); cursor: pointer; }
+.month-cell:hover, .month-cell[aria-current="date"] { background: #ede2f4; }
+.month-cell.outside-month { color: var(--muted); background: transparent; }
+.month-cell small { font-size: 10px; }
+.calendar-notices { margin-bottom: 15px; }
+#modalBody .calendar-notify input { width: auto; min-height: 0; accent-color: var(--purple); }
+@media (max-width: 450px) { .month-cell small span { display: none; } }
 #lessonDetails { padding: 22px; color: var(--ink); }
 .lesson-details-meta, .lesson-no-zoom { font-size: 14px; color: var(--muted); }
 .lesson-join { display: inline-flex; text-decoration: none; margin: 4px 0 14px; }
