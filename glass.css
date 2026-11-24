@@ -192,6 +192,121 @@ dialog[open]::backdrop { animation: glass-backdrop 240ms ease-out both; }
 .month-cell.outside-month { color: var(--muted); background: transparent; }
 .month-cell small { font-size: 10px; }
 .calendar-notices { margin-bottom: 15px; }
+.demo-form, .demo-form label { display: grid; gap: 8px; }
+.demo-form { margin-block: 12px; }
+.demo-form input, .demo-form select, .demo-form textarea, #chatPartner {
+  box-sizing: border-box; width: 100%; min-width: 0; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 10px; font: inherit;
+}
+.demo-form textarea { resize: vertical; }
+.invite-choices { min-width: 0; margin: 0; padding: 0; border: 0; }
+.invite-choices legend { padding: 0; margin-bottom: 6px; font-weight: 650; }
+.invite-students > summary, .invite-choices label {
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: #fcf9fd; color: var(--ink); cursor: pointer; overflow-wrap: anywhere;
+}
+.invite-students > div { display: grid; gap: 4px; margin-top: 6px; }
+.invite-choices label { display: flex; align-items: center; gap: 8px; }
+.invite-choices input[type="radio"] { width: auto; flex: none; accent-color: var(--purple); }
+.invite-choices label:has(:checked) { background: #eee4f4; border-color: #cdbadb; }
+.invite-roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 115px), 1fr)); gap: 6px; }
+.invite-students > summary { display: flex; justify-content: space-between; gap: 12px; list-style: none; }
+.invite-students > summary::-webkit-details-marker { display: none; }
+.invite-students > summary::after {
+  content: ""; width: 7px; height: 7px; flex: none; margin: 5px 2px 0;
+  border: solid var(--purple); border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.invite-students[open] > summary::after { transform: translateY(4px) rotate(225deg); }
+.invite-students > summary:focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; }
+.nav-button[data-page] { position: relative; }
+.nav-button[data-page]::before {
+  content: ""; position: absolute; inset: 25% auto 25% 0; width: 3px;
+  border-radius: 3px; background: var(--purple); opacity: 0; transform: scaleY(.4);
+}
+.nav-button[data-page].active::before { opacity: 1; transform: scaleY(1); }
+@media (prefers-reduced-motion: no-preference) {
+  .nav-button[data-page]::before, .invite-students > summary::after {
+    transition: opacity 180ms ease, transform 240ms var(--glass-ease);
+  }
+  .invite-choices label, .invite-students > summary {
+    transition: background-color 180ms ease, border-color 180ms ease;
+  }
+  @supports (interpolate-size: allow-keywords) and selector(::details-content) {
+    .invite-students { interpolate-size: allow-keywords; }
+    .invite-students::details-content {
+      block-size: 0; overflow: clip; opacity: 0;
+      transition: block-size 260ms var(--glass-ease), opacity 180ms ease, content-visibility 260ms allow-discrete;
+    }
+    .invite-students[open]::details-content { block-size: auto; opacity: 1; }
+  }
+  .invite-students[open] > div { animation: glass-arrive 220ms var(--glass-ease) both; --arrival-offset: 4px; }
+  .mobile-more[open] .mobile-menu-panel { animation: glass-arrive 200ms var(--glass-ease) both; --arrival-offset: 6px; }
+}
+@media (hover: hover) {
+  .invite-choices label:hover, .invite-students > summary:hover { border-color: #ac91c3; }
+}
+:root { color-scheme: light; }
+select {
+  color-scheme: light;
+  color: var(--ink);
+  background-color: #fcf9fd;
+}
+@supports (appearance: base-select) and selector(::picker(select)) {
+  select, select::picker(select) { appearance: base-select; }
+  select::picker(select) {
+    margin-block: 5px;
+    padding: 4px;
+    max-height: min(320px, 50vh);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fffaff;
+    color: var(--ink);
+    box-shadow: 0 12px 30px #35204420;
+  }
+  select option {
+    padding: 9px 12px;
+    border-radius: 8px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  select option:checked { background: #f2e9f7; }
+  select option:hover, select option:focus-visible { background: #e9dbf2; }
+  select::picker-icon { color: var(--purple); }
+}
+.demo-account-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.demo-thread { display: grid; gap: 8px; max-height: 50vh; overflow: auto; margin-block: 12px; }
+.demo-thread article { max-width: 86%; justify-self: start; padding: 10px 12px; border-radius: 12px; background: #f4eff6; overflow-wrap: anywhere; }
+.demo-thread article.own-message { justify-self: end; background: #ede2f4; }
+.demo-thread small { color: var(--muted); }
+.demo-thread article div { white-space: pre-wrap; }
+.multi-chat { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(0, 2fr); gap: 16px; }
+.chat-list { min-width: 0; border-right: 1px solid var(--line); padding-right: 12px; }
+.chat-list h2, .chat-main h2 { margin: 0 0 12px; }
+.chat-main { min-width: 0; }
+.chat-contact {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center;
+  gap: 8px; width: 100%; min-height: 56px; padding: 8px; margin-bottom: 4px;
+  text-align: left; border: 0; border-radius: 12px; background: transparent; color: var(--ink); cursor: pointer;
+}
+.chat-contact:hover, .chat-contact.active { background: #eee4f5; }
+.chat-contact-copy { min-width: 0; }
+.chat-contact-copy strong, .chat-contact-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-contact-copy small { color: var(--muted); margin-top: 3px; }
+.chat-unread { padding: 3px 7px; border-radius: 20px; background: var(--purple); color: white; font-size: 11px; }
+.chat-back { display: none; }
+.chat-nav-badge { margin-left: auto; border-radius: 20px; padding: 2px 7px; background: var(--purple); color: white; font-size: 11px; }
+.mobile-more > summary { position: relative; }
+.mobile-more > summary > .chat-nav-badge { position: absolute; top: 3px; right: 3px; font-size: 10px; }
+.chat-dashboard-notice { margin-bottom: 14px; }
+@media (max-width: 680px) {
+  .multi-chat { grid-template-columns: minmax(0, 1fr); }
+  .multi-chat .chat-list { border: 0; padding: 0; }
+  .multi-chat:not(.conversation-open) .chat-main, .multi-chat.conversation-open .chat-list { display: none; }
+  .multi-chat.conversation-open .chat-back { display: inline-block; margin-bottom: 12px; }
+}
+#loginForm > .secondary { width: 100%; margin-top: 10px; }
+.mobile-menu-panel { max-height: min(65vh, 400px); overflow: auto; }
 #modalBody .calendar-notify input { width: auto; min-height: 0; accent-color: var(--purple); }
 .calendar-table th, .calendar-table td { border-right-color: #f1edf3; border-bottom-color: #f1edf3; }
 .calendar-table thead th { background: #fcfafc; }
@@ -207,6 +322,9 @@ dialog[open]::backdrop { animation: glass-backdrop 240ms ease-out both; }
 .lesson-details-meta, .lesson-no-zoom { font-size: 14px; color: var(--muted); }
 .lesson-join { display: inline-flex; text-decoration: none; margin: 4px 0 14px; }
 .lesson-zoom-form input { width: 100%; min-height: 44px; }
+.lesson-zoom-form .field + .field { margin-top: 12px; }
+#homeworkFileNames, .homework-file { max-width: 100%; overflow-wrap: anywhere; }
+.homework-file { display: block; text-align: left; }
 
 /* Shared button hierarchy across the workspace, dialogs and sign-in. */
 :is(.primary, .secondary, .login-submit, .quick-grid button, .demo-box button, .calendar-lesson, .pdf-picker-button) {

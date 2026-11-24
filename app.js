@@ -89,9 +89,10 @@ function personalDashboard() {
   const pupil = student(user.studentId);
   const lesson = orderedLessons(ownLessons()).find(item => item.date + 'T' + item.time >= localDay() + 'T' + new Date().toTimeString().slice(0, 5));
   const tasks = data.homework.filter(task => task.studentId === pupil.id && !task.done);
+  const nextZoom = lesson && (zoomUrl(lesson.zoom) || zoomUrl(data.defaultZoom));
   const notices = ownLessons().filter(item => item.notify === 'yes').slice(-3).reverse();
   const noticePanel = notices.length ? `<section class="card calendar-notices"><h2>Уведомления</h2>${notices.map(item => `<div class="task-preview"><b>Запланирован урок</b><small>${fmt(item.date)} · ${item.time}</small></div>`).join('')}</section>` : '';
-  return `${noticePanel}<section class="parent-hero"><div><p>Ближайшее занятие</p><h2>${lesson ? fmt(lesson.date) + ' · ' + lesson.time : 'Пока не назначено'}</h2><small>${escapeHtml(pupil.name)} · ${escapeHtml(pupil.subject)}</small></div><button class="secondary" data-page="payments">Оплата за месяц →</button></section><div class="grid dashboard-grid"><section class="card"><div class="card-head"><h2>Домашние задания</h2><button class="text-btn" data-page="homework">Все задания →</button></div>${tasks.map(task => `<div class="task-preview"><b>${escapeHtml(task.title)}</b><small>До ${fmt(task.due)}</small></div>`).join('')||'<p class="empty">Новых заданий нет</p>'}</section><section class="card"><div class="card-head"><h2>Свободные окна</h2><button class="text-btn" data-page="slots">Посмотреть →</button></div>${data.slots.filter(slot=>slot.date>=localDay()).slice(0,3).map(slot=>`<div class="task-preview"><b>${fmt(slot.date)} · ${slot.time}</b><small>${slot.duration} мин.</small></div>`).join('')||'<p class="empty">Свободных окон пока нет</p>'}</section></div>`;
+  return `${noticePanel}<section class="parent-hero"><div><p>Ближайшее занятие</p><h2>${lesson ? fmt(lesson.date) + ' · ' + lesson.time : 'Пока не назначено'}</h2><small>${escapeHtml(pupil.name)} · ${escapeHtml(pupil.subject)}</small></div>${nextZoom ? `<a class="primary lesson-join" href="${escapeHtml(nextZoom)}" target="_blank" rel="noopener noreferrer">Подключиться к Zoom</a>` : '<button class="secondary" data-page="payments">Оплата за месяц →</button>'}</section><div class="grid dashboard-grid"><section class="card"><div class="card-head"><h2>Домашние задания</h2><button class="text-btn" data-page="homework">Все задания →</button></div>${tasks.map(task => `<div class="task-preview"><b>${escapeHtml(task.title)}</b><small>До ${fmt(task.due)}</small></div>`).join('')||'<p class="empty">Новых заданий нет</p>'}</section><section class="card"><div class="card-head"><h2>Свободные окна</h2><button class="text-btn" data-page="slots">Посмотреть →</button></div>${data.slots.filter(slot=>slot.date>=localDay()).slice(0,3).map(slot=>`<div class="task-preview"><b>${fmt(slot.date)} · ${slot.time}</b><small>${slot.duration} мин.</small></div>`).join('')||'<p class="empty">Свободных окон пока нет</p>'}</section></div>`;
 }
 function studentsPage(){return `<div class="section-head"><div><h2>Ученики</h2><p>Контакты, обучение и стоимость занятий</p></div><button class="primary" data-add="student">＋ Новый ученик</button></div><div class="toolbar"><input class="search" placeholder="⌕  Найти ученика или родителя"></div><div class="data-table"><div class="table-head"><span>Ученик</span><span>Родитель</span><span>Направление</span><span>За занятие</span></div>${data.students.map(s=>`<div class="table-row"><div class="student-cell"><span class="mini-avatar">${initials(s.name)}</span><div>${escapeHtml(s.name)}<small>${escapeHtml(s.phone)}</small></div></div><span>${escapeHtml(s.parent)}</span><span>${escapeHtml(s.subject)}</span><div>${money(s.price)}<br><button class="text-btn" data-docs="${s.id}">📎 Документы</button></div></div>`).join('')}</div>`}
 let calendarDate;
@@ -159,7 +160,7 @@ function zoomUrl(value) {
 function openLessonDetails(lesson) {
   const dialog = $('#lessonDetails');
   const pupil = student(lesson.studentId);
-  const link = zoomUrl(lesson.zoom);
+  const link = zoomUrl(lesson.zoom) || zoomUrl(data.defaultZoom);
   dialog.querySelector('h2').textContent = pupil.name;
   dialog.querySelector('.lesson-details-meta').textContent = fmt(lesson.date) + ' · ' + lesson.time + ' · ' + pupil.subject;
   const join = dialog.querySelector('.lesson-join');
@@ -168,7 +169,8 @@ function openLessonDetails(lesson) {
   dialog.querySelector('.lesson-no-zoom').hidden = Boolean(link);
   const form = dialog.querySelector('form');
   form.hidden = user.role !== 'admin';
-  form.elements.zoom.value = link;
+  form.elements.zoom.value = lesson.zoom || '';
+  form.elements.defaultZoom.value = data.defaultZoom || '';
   form.onsubmit = event => {
     event.preventDefault();
     if (user?.role !== 'admin') return;
@@ -179,6 +181,14 @@ function openLessonDetails(lesson) {
       form.elements.zoom.reportValidity();
       return;
     }
+    const defaultValue = form.elements.defaultZoom.value.trim();
+    const defaultAddress = zoomUrl(defaultValue);
+    if (defaultValue && !defaultAddress) {
+      form.elements.defaultZoom.setCustomValidity('Укажите HTTPS-ссылку на zoom.us или zoom.com.');
+      form.elements.defaultZoom.reportValidity();
+      return;
+    }
+    data.defaultZoom = defaultAddress;
     lesson.zoom = address;
     save();
     dialog.close();
@@ -186,6 +196,8 @@ function openLessonDetails(lesson) {
   };
   form.elements.zoom.setCustomValidity('');
   form.elements.zoom.oninput = () => form.elements.zoom.setCustomValidity('');
+  form.elements.defaultZoom.setCustomValidity('');
+  form.elements.defaultZoom.oninput = () => form.elements.defaultZoom.setCustomValidity('');
   dialog.showModal();
 }
 
@@ -217,7 +229,7 @@ document.addEventListener('click', event => {
   const lesson = ownLessons().find(item => String(item.id) === id);
   if (lesson) openLessonDetails(lesson);
 });
-function homeworkPage(){let hs=user.role==='admin'?data.homework:data.homework.filter(x=>x.studentId===user.studentId);return `<div class="section-head"><div><h2>Домашние задания</h2><p>${user.role==='admin'?'Создавайте и проверяйте задания':'Задания от преподавателя'}</p></div>${user.role==='admin'?'<button class="primary" data-add="homework">＋ Задание</button>':''}</div><div class="card">${hs.map(x=>{let s=student(x.studentId);return `<div class="lesson-row"><div><input type="checkbox" data-check="${x.id}" ${x.done?'checked':''} ${user.role!=='admin'?'disabled':''}></div><div class="student-cell"><div>${escapeHtml(x.title)}<small>${escapeHtml(s.name)} · до ${fmt(x.due)}</small></div></div><span class="status ${x.done?'':'warn'}">${x.done?'Выполнено':'В работе'}</span></div>`}).join('')||'<div class="empty">Заданий нет</div>'}</div>`}
+function homeworkPage(){let hs=user.role==='admin'?data.homework:data.homework.filter(x=>x.studentId===user.studentId);return `<div class="section-head"><div><h2>Домашние задания</h2><p>${user.role==='admin'?'Создавайте и проверяйте задания':'Задания от преподавателя'}</p></div>${user.role==='admin'?'<button class="primary" data-add="homework">＋ Задание</button>':''}</div><div class="card">${hs.map(x=>{let s=student(x.studentId);return `<div class="lesson-row"><div><input type="checkbox" data-check="${x.id}" ${x.done?'checked':''} ${user.role!=='admin'?'disabled':''}></div><div class="student-cell"><div>${escapeHtml(x.title)}<small>${escapeHtml(s.name)} · до ${fmt(x.due)}</small>${homeworkAttachmentButtons(x)}</div></div><span class="status ${x.done?'':'warn'}">${x.done?'Выполнено':'В работе'}</span></div>`}).join('')||'<div class="empty">Заданий нет</div>'}</div>`}
 let selectedMonth = '';
 function monthlyInvoices(month) {
   const pupils = user.role === 'admin' ? data.students : data.students.filter(pupil => pupil.id === user.studentId);
@@ -234,10 +246,10 @@ function paymentsPage() {
   return `<section class="card"><div class="card-head"><h2>Абонементы</h2>${user.role === 'admin' ? '<button class="primary" data-add="subscription">Создать абонемент</button>' : ''}<label>Месяц <input type="month" id="billingMonth" value="${month}"></label></div>${invoiceRows(monthlyInvoices(month))}</section>`;
 }
 function slotsPage(){return `<div class="section-head"><div><h2>Свободные окна</h2><p>${user.role==='admin'?'Настройте время, которое увидят семьи':'Уточните запись у Саши'}</p></div>${user.role==='admin'?'<button class="primary" data-add="slot">＋ Добавить окно</button>':''}</div><div class="grid slot-layout">${data.slots.filter(slot=>slot.date>=localDay()).map(x=>`<div class="card"><small style="color:var(--purple);font-weight:800">${fmt(x.date)}</small><h2 style="font-size:24px;margin:8px 0">${x.time}</h2><p style="font-size:8px;color:var(--muted)">${x.duration} минут</p>${user.role==='admin'?'<span class="status">Опубликовано</span>':'<span class="status">Свободно</span>'}</div>`).join('')}</div>`}
-function go(page){if (!user || !navs[user.role].some(item => item[0] === page)) return;currentPage=page;$$('.nav-button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));let titles={dashboard:user.role==='admin'?'Добрый день, Саша!':'Личный кабинет',students:'Ученики',schedule:'Расписание',homework:'Домашние задания',payments:'Оплаты за месяц',slots:'Свободные окна'};$('#pageTitle').textContent=titles[page];$('#primaryAction').style.display=user.role==='admin'?'block':'none';let html=page==='dashboard'?(user.role==='admin'?adminDashboard():personalDashboard()):page==='students'?studentsPage():page==='schedule'?schedulePage():page==='homework'?homeworkPage():page==='payments'?paymentsPage():slotsPage();$('#content').innerHTML=html}
+function go(page){if (!user || !navs[user.role].some(item => item[0] === page)) return;currentPage=page;$$('.nav-button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));let titles={dashboard:user.role==='admin'?'Добрый день, Саша!':'Личный кабинет',students:'Ученики',schedule:'Расписание',homework:'Домашние задания',payments:'Оплаты за месяц',slots:'Свободные окна',access:'Доступ',messages:'Сообщения'};$('#pageTitle').textContent=titles[page];$('#primaryAction').style.display=user.role==='admin'?'block':'none';let html=page==='dashboard'?(user.role==='admin'?adminDashboard():personalDashboard()):page==='students'?studentsPage():page==='schedule'?schedulePage():page==='homework'?homeworkPage():page==='payments'?paymentsPage():page==='access'?accessPage():page==='messages'?messagesPage():slotsPage();$('#content').innerHTML=html;refreshChatNotifications()}
 const field=(l,n,t='text',full=false)=>`<div class="field ${full?'full':''}"><label for="field-${n}">${l}</label><input id="field-${n}" name="${n}" type="${t}" ${n==='price'?'min="0" step="0.01"':(n==='duration'||n==='count')?'min="1"':''} required></div>`,studentSelect=()=>`<div class="field full"><label for="field-studentId">Ученик</label><select id="field-studentId" name="studentId" required>${data.students.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}</select></div>`;
-function openForm(type, preset = {}){if(user?.role!=='admin') return;let map={subscription:['Оплаты','Новый абонемент'],student:['Карточка ученика','Новый ученик'],lesson:['Расписание','Запланировать урок'],homework:['Обучение','Новое задание'],slot:['Расписание','Свободное окно']},body='';$('#modalKicker').textContent=map[type][0];$('#modalTitle').textContent=map[type][1];$('#modalForm').dataset.type=type;if(type==='subscription')body=studentSelect()+field('Месяц','month','month')+field('Количество занятий','count','number')+field('Сумма, ₽','price','number');if(type==='student')body=field('Имя ученика','name')+field('Имя родителя','parent')+field('Телефон','phone','tel')+field('Направление','subject')+field('Цена занятия','price','number');if(type==='lesson')body=studentSelect()+field('Дата','date','date')+field('Время','time','time')+'<p id="lessonSubscriptionNote" class="field full subscription-note" aria-live="polite"></p><label class="field full calendar-notify"><span><input type="checkbox" name="notify" value="yes"> Показать уведомление в кабинете семьи</span></label>';if(type==='homework')body=studentSelect()+field('Задание','title', 'text',true)+field('Срок','due','date');if(type==='slot')body=field('Дата','date','date')+field('Время','time','time')+field('Длительность, минут','duration','number');$('#modalBody').innerHTML=body;if(type==='subscription')$('#modalForm').elements.month.value=selectedMonth||localDay().slice(0,7);if(type==='lesson'){const form=$('#modalForm');form.elements.date.value=preset.date||'';form.elements.time.value=preset.time||'';const update=()=>previewLessonSubscription(form);form.elements.studentId.onchange=update;form.elements.date.onchange=update;update()}$('#modal').showModal();$('#modalBody').querySelector('input, select')?.focus()}
-$('#modalForm').onsubmit=e=>{e.preventDefault();if(user?.role!=='admin')return;let f=Object.fromEntries(new FormData(e.target)),t=e.target.dataset.type;f.id=Date.now();if(t==='subscription'){
+function openForm(type, preset = {}){if(user?.role!=='admin') return;let map={subscription:['Оплаты','Новый абонемент'],student:['Карточка ученика','Новый ученик'],lesson:['Расписание','Запланировать урок'],homework:['Обучение','Новое задание'],slot:['Расписание','Свободное окно']},body='';$('#modalKicker').textContent=map[type][0];$('#modalTitle').textContent=map[type][1];$('#modalForm').dataset.type=type;if(type==='subscription')body=studentSelect()+field('Месяц','month','month')+field('Количество занятий','count','number')+field('Сумма, ₽','price','number');if(type==='student')body=field('Имя ученика','name')+field('Имя родителя','parent')+field('Телефон','phone','tel')+field('Направление','subject')+field('Цена занятия','price','number');if(type==='lesson')body=studentSelect()+field('Дата','date','date')+field('Время','time','time')+'<p id="lessonSubscriptionNote" class="field full subscription-note" aria-live="polite"></p><label class="field full calendar-notify"><span><input type="checkbox" name="notify" value="yes"> Показать уведомление в кабинете семьи</span></label>';if(type==='homework')body=studentSelect()+field('Задание','title', 'text',true)+field('Срок','due','date')+homeworkAttachmentField();if(type==='slot')body=field('Дата','date','date')+field('Время','time','time')+field('Длительность, минут','duration','number');$('#modalBody').innerHTML=body;if(type==='subscription')$('#modalForm').elements.month.value=selectedMonth||localDay().slice(0,7);if(type==='lesson'){const form=$('#modalForm');form.elements.date.value=preset.date||'';form.elements.time.value=preset.time||'';const update=()=>previewLessonSubscription(form);form.elements.studentId.onchange=update;form.elements.date.onchange=update;update()}$('#modal').showModal();$('#modalBody').querySelector('input, select')?.focus()}
+$('#modalForm').onsubmit=async e=>{e.preventDefault();if(user?.role!=='admin')return;let f=Object.fromEntries(new FormData(e.target)),t=e.target.dataset.type;f.id=Date.now();if(t==='subscription'){
   if (!createSubscription(f)) return;
   $('#modal').close();
   go('payments');
@@ -257,7 +269,17 @@ $('#modalForm').onsubmit=e=>{e.preventDefault();if(user?.role!=='admin')return;l
   }
   if (currentPage === 'schedule') calendarDate = f.date;
   data.lessons.push(f);
-}if(t==='homework'){f.studentId=+f.studentId;f.done=false;data.homework.push(f)}if(t==='slot'){f.duration=+f.duration;data.slots.push(f)}save();$('#modal').close();go(currentPage);toast('Сохранено')};
+}if(t==='homework'){
+  f.studentId = Number(f.studentId);
+  f.done = false;
+  try {
+    f.attachments = await saveHomeworkAttachments(e.target);
+  } catch (error) {
+    toast(error.message);
+    return;
+  }
+  data.homework.push(f);
+}if(t==='slot'){f.duration=+f.duration;data.slots.push(f)}save();$('#modal').close();go(currentPage);toast('Сохранено')};
 document.onclick=e=>{let p=e.target.closest('[data-page]'),a=e.target.closest('[data-add]');if(p)go(p.dataset.page);if(a)openForm(a.dataset.add);const invoice=e.target.closest('[data-invoice]');if(invoice&&user?.role==='admin')updateInvoice(Number(invoice.dataset.invoice));if(user?.role==='admin'&&e.target.dataset.check){data.homework.find(x=>x.id==e.target.dataset.check).done=e.target.checked;save();go(currentPage)}if(e.target.closest('[data-dismiss-modal]'))e.target.closest('dialog').close()};$('#primaryAction').onclick=()=>openForm('lesson');
 function toast(t){let x=$('#toast');x.textContent=t;x.classList.add('show');setTimeout(()=>x.classList.remove('show'),2200)}
 document.addEventListener('input', event => {

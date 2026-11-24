@@ -13,7 +13,8 @@
   <a class="primary lesson-join" target="_blank" rel="noopener noreferrer" hidden>Подключиться к Zoom</a>
   <p class="lesson-no-zoom">Ссылка Zoom пока не добавлена.</p>
   <form class="lesson-zoom-form">
-    <div class="field"><label for="lessonZoom">Ссылка Zoom</label><input id="lessonZoom" name="zoom" type="url" placeholder="https://zoom.us/j/…"></div>
+    <div class="field"><label for="lessonZoom">Ссылка для этого урока (необязательно)</label><input id="lessonZoom" name="zoom" type="url" placeholder="https://zoom.us/j/…"></div>
+    <div class="field"><label for="defaultZoom">Постоянная ссылка Zoom для всех уроков</label><input id="defaultZoom" name="defaultZoom" type="url" placeholder="https://zoom.us/j/…"></div>
     <div class="modal-actions"><button class="primary">Сохранить ссылку</button></div>
   </form>
 </dialog>
@@ -39,4 +40,14 @@
     <div class="modal-actions"><button type="button" class="secondary" data-dismiss-modal>Назад</button><button class="primary">Продолжить</button></div>
   </form>
 </dialog>
-<div id="toast" role="status"></div><script src="app.js"></script><script src="records.js"></script></body></html>
+<dialog id="inviteDialog" aria-labelledby="inviteTitle" style="padding:22px">
+  <div class="modal-header"><h2 id="inviteTitle">Принять приглашение</h2><button class="modal-close" data-dismiss-modal aria-label="Закрыть">×</button></div>
+  <form id="redeemInvite" class="demo-form">
+    <label>Код приглашения <input name="code" required></label>
+    <label>Имя <input name="displayName" required maxlength="80"></label>
+    <label>Логин <input name="login" autocomplete="username" pattern="[a-zA-Z0-9._\-]{3,40}" required></label>
+    <label>Пароль для демо <input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+    <p id="inviteError" role="alert"></p><button class="primary">Создать аккаунт</button>
+  </form>
+</dialog>
+<div id="toast" role="status"></div><script src="app.js"></script><script src="records.js"></script><script src="demo-access.js"></script><script src="homework-files.js"></script></body></html>
