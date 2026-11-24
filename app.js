@@ -57,10 +57,91 @@ function personalDashboard() {
   const tasks = data.homework.filter(task => task.studentId === pupil.id && !task.done);
   return `<section class="parent-hero"><div><p>Ближайшее занятие</p><h2>${lesson ? fmt(lesson.date) + ' · ' + lesson.time : 'Пока не назначено'}</h2><small>${escapeHtml(pupil.name)} · ${escapeHtml(pupil.subject)}</small></div><button class="secondary" data-page="payments">Оплата за месяц →</button></section><div class="grid dashboard-grid"><section class="card"><div class="card-head"><h2>Домашние задания</h2><button class="text-btn" data-page="homework">Все задания →</button></div>${tasks.map(task => `<div class="task-preview"><b>${escapeHtml(task.title)}</b><small>До ${fmt(task.due)}</small></div>`).join('')||'<p class="empty">Новых заданий нет</p>'}</section><section class="card"><div class="card-head"><h2>Свободные окна</h2><button class="text-btn" data-page="slots">Посмотреть →</button></div>${data.slots.filter(slot=>slot.date>=localDay()).slice(0,3).map(slot=>`<div class="task-preview"><b>${fmt(slot.date)} · ${slot.time}</b><small>${slot.duration} мин.</small></div>`).join('')||'<p class="empty">Свободных окон пока нет</p>'}</section></div>`;
 }
-function studentsPage(){return `<div class="section-head"><div><h2>Ученики</h2><p>Контакты, обучение и стоимость занятий</p></div><button class="primary" data-add="student">＋ Новый ученик</button></div><div class="toolbar"><input class="search" placeholder="⌕  Найти ученика или родителя"></div><div class="data-table"><div class="table-head"><span>Ученик</span><span>Родитель</span><span>Направление</span><span>За занятие</span></div>${data.students.map(s=>`<div class="table-row"><div class="student-cell"><span class="mini-avatar">${initials(s.name)}</span><div>${escapeHtml(s.name)}<small>${escapeHtml(s.phone)}</small></div></div><span>${escapeHtml(s.parent)}</span><span>${escapeHtml(s.subject)}</span><span>${money(s.price)}</span></div>`).join('')}</div>`}
-function schedulePage() {
-  return `<section class="card"><div class="card-head"><h2>Занятия</h2></div>${lessonList(orderedLessons(ownLessons()), 'Занятий пока нет')}</section>`;
+function studentsPage(){return `<div class="section-head"><div><h2>Ученики</h2><p>Контакты, обучение и стоимость занятий</p></div><button class="primary" data-add="student">＋ Новый ученик</button></div><div class="toolbar"><input class="search" placeholder="⌕  Найти ученика или родителя"></div><div class="data-table"><div class="table-head"><span>Ученик</span><span>Родитель</span><span>Направление</span><span>За занятие</span></div>${data.students.map(s=>`<div class="table-row"><div class="student-cell"><span class="mini-avatar">${initials(s.name)}</span><div>${escapeHtml(s.name)}<small>${escapeHtml(s.phone)}</small></div></div><span>${escapeHtml(s.parent)}</span><span>${escapeHtml(s.subject)}</span><div>${money(s.price)}<br><button class="text-btn" data-docs="${s.id}">📎 Документы</button></div></div>`).join('')}</div>`}
+let calendarDate;
+let calendarView = 'week';
+
+function shiftCalendarDate(date, days) {
+  const result = new Date(date + 'T12:00');
+  result.setDate(result.getDate() + days);
+  return result.toLocaleDateString('sv-SE');
 }
+
+function schedulePage() {
+  calendarDate ||= localDay();
+  const weekday = new Date(calendarDate + 'T12:00').getDay();
+  const start = calendarView === 'week' ? shiftCalendarDate(calendarDate, -((weekday + 6) % 7)) : calendarDate;
+  const dates = Array.from({length: calendarView === 'week' ? 7 : 1}, (_, i) => shiftCalendarDate(start, i));
+  const lessons = orderedLessons(ownLessons()).filter(lesson => dates.includes(lesson.date));
+  const hours = lessons.map(lesson => Number(lesson.time.slice(0, 2)));
+  const firstHour = Math.min(8, ...hours);
+  const lastHour = Math.max(20, ...hours);
+  const rows = Array.from({length: lastHour - firstHour + 1}, (_, index) => {
+    const hour = String(firstHour + index).padStart(2, '0');
+    return `<tr><th scope="row">${hour}:00</th>${dates.map(date => `<td>${lessons.filter(lesson => lesson.date === date && lesson.time.startsWith(hour + ':')).map(lesson => {
+      const pupil = student(lesson.studentId);
+      return `<button class="calendar-lesson" type="button" data-lesson-details="${lesson.id}"><strong>${lesson.time} · ${escapeHtml(pupil.name)}</strong><small>${escapeHtml(pupil.subject)}</small></button>`;
+    }).join('')}</td>`).join('')}</tr>`;
+  }).join('');
+  return `<section class="card"><div class="calendar-toolbar"><div><button class="secondary" data-calendar="today">Сегодня</button> <button class="secondary" data-calendar="prev" aria-label="Предыдущий период">←</button> <button class="secondary" data-calendar="next" aria-label="Следующий период">→</button></div><h2>${fmt(start)}${dates.length > 1 ? ' — ' + fmt(dates.at(-1)) : ''}</h2><div><button class="secondary" data-calendar="day" aria-pressed="${calendarView === 'day'}">День</button> <button class="secondary" data-calendar="week" aria-pressed="${calendarView === 'week'}">Неделя</button></div></div><div class="calendar-scroll" tabindex="0" aria-label="Календарь занятий"><table class="calendar-table ${calendarView}"><thead><tr><th scope="col">Время</th>${dates.map(date => `<th scope="col" class="${date === localDay() ? 'calendar-today' : ''}">${fmt(date)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+}
+
+function zoomUrl(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'https:' && !url.username && !url.password &&
+        ['zoom.us', 'zoom.com'].some(domain => url.hostname === domain || url.hostname.endsWith('.' + domain))) return url.href;
+  } catch {}
+  return '';
+}
+
+function openLessonDetails(lesson) {
+  const dialog = $('#lessonDetails');
+  const pupil = student(lesson.studentId);
+  const link = zoomUrl(lesson.zoom);
+  dialog.querySelector('h2').textContent = pupil.name;
+  dialog.querySelector('.lesson-details-meta').textContent = fmt(lesson.date) + ' · ' + lesson.time + ' · ' + pupil.subject;
+  const join = dialog.querySelector('.lesson-join');
+  join.hidden = !link;
+  join.href = link || '#';
+  dialog.querySelector('.lesson-no-zoom').hidden = Boolean(link);
+  const form = dialog.querySelector('form');
+  form.hidden = user.role !== 'admin';
+  form.elements.zoom.value = link;
+  form.onsubmit = event => {
+    event.preventDefault();
+    if (user?.role !== 'admin') return;
+    const value = form.elements.zoom.value.trim();
+    const address = zoomUrl(value);
+    if (value && !address) {
+      form.elements.zoom.setCustomValidity('Укажите HTTPS-ссылку на zoom.us или zoom.com.');
+      form.elements.zoom.reportValidity();
+      return;
+    }
+    lesson.zoom = address;
+    save();
+    dialog.close();
+    toast('Ссылка сохранена');
+  };
+  form.elements.zoom.setCustomValidity('');
+  form.elements.zoom.oninput = () => form.elements.zoom.setCustomValidity('');
+  dialog.showModal();
+}
+
+document.addEventListener('click', event => {
+  const command = event.target.closest('[data-calendar]')?.dataset.calendar;
+  if (command && user && currentPage === 'schedule') {
+    if (command === 'today') calendarDate = localDay();
+    else if (command === 'day' || command === 'week') calendarView = command;
+    else calendarDate = shiftCalendarDate(calendarDate, (command === 'prev' ? -1 : 1) * (calendarView === 'week' ? 7 : 1));
+    go('schedule');
+    $(`[data-calendar="${command}"]`)?.focus();
+  }
+  const id = event.target.closest('[data-lesson-details]')?.dataset.lessonDetails;
+  if (!user || !id) return;
+  const lesson = ownLessons().find(item => String(item.id) === id);
+  if (lesson) openLessonDetails(lesson);
+});
 function homeworkPage(){let hs=user.role==='admin'?data.homework:data.homework.filter(x=>x.studentId===user.studentId);return `<div class="section-head"><div><h2>Домашние задания</h2><p>${user.role==='admin'?'Создавайте и проверяйте задания':'Задания от преподавателя'}</p></div>${user.role==='admin'?'<button class="primary" data-add="homework">＋ Задание</button>':''}</div><div class="card">${hs.map(x=>{let s=student(x.studentId);return `<div class="lesson-row"><div><input type="checkbox" data-check="${x.id}" ${x.done?'checked':''} ${user.role!=='admin'?'disabled':''}></div><div class="student-cell"><div>${escapeHtml(x.title)}<small>${escapeHtml(s.name)} · до ${fmt(x.due)}</small></div></div><span class="status ${x.done?'':'warn'}">${x.done?'Выполнено':'В работе'}</span></div>`}).join('')||'<div class="empty">Заданий нет</div>'}</div>`}
 let selectedMonth = '';
 function monthlyInvoices(month) {

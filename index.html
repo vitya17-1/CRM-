@@ -1,10 +1,42 @@
-<!doctype html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Уроки — личный кабинет</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="glass.css"></head><body>
-<section id="login" class="login-screen"><div class="login-visual"><div class="logo"><span>У</span> Уроки</div><div class="glass-orb" aria-hidden="true"></div><div class="login-message"><h1>Уроки</h1><p>Расписание, домашние задания и оплаты занятий.</p></div></div>
-<div class="login-panel"><form id="loginForm" class="login-form"><div class="mobile-logo logo"><span>У</span> Уроки</div><div class="form-kicker">Добро пожаловать</div><h2>Войдите в кабинет</h2><p>Используйте логин, который вы получили от преподавателя.</p><label>Логин<div class="input-wrap"><span>◎</span><input id="loginInput" autocomplete="username" placeholder="Ваш логин" required></div></label><label>Пароль<div class="input-wrap"><span>⌑</span><input id="passwordInput" type="password" autocomplete="current-password" placeholder="Введите пароль" required><button type="button" id="showPassword">Показать</button></div></label><div class="login-options"><button type="button" class="link-button" id="forgot">Забыли пароль?</button></div><div id="loginError" class="login-error" role="alert"></div><button class="login-submit">Войти <span>→</span></button><div class="demo-box"><b>Демо-доступ</b><button type="button" data-demo="sasha">Саша · руководитель</button><button type="button" data-demo="parent">Елена · родитель</button><button type="button" data-demo="student">Анна · ученица</button></div><small class="security-note">Локальный предпросмотр · Используйте тестовые данные</small></form></div></section>
+<!doctype html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fomenko Teacher — личный кабинет</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="glass.css"></head><body>
+<section id="login" class="login-screen"><div class="login-visual portrait-cover"><img class="cover-photo" src="fomenko-cover.png" alt="" width="1280" height="853" fetchpriority="high"><div class="login-message"><p class="cover-brand">Fomenko Teacher</p><h1>Понять предмет.<br>Уверенно сдать.</h1><p class="cover-description"><strong>Александра Сергеевна Фоменко</strong><br>Преподаватель русского и английского языков, литературы</p><p class="cover-preparation">Подготовка к ЕГЭ, ОГЭ и олимпиадам</p></div></div>
+<div class="login-panel"><form id="loginForm" class="login-form"><div class="mobile-logo logo"><span>F</span> Fomenko Teacher</div><div class="form-kicker">Добро пожаловать</div><h2>Войдите в кабинет</h2><p>Используйте логин, который вы получили от преподавателя.</p><label>Логин<div class="input-wrap"><span>◎</span><input id="loginInput" autocomplete="username" placeholder="Ваш логин" required></div></label><label>Пароль<div class="input-wrap"><span>⌑</span><input id="passwordInput" type="password" autocomplete="current-password" placeholder="Введите пароль" required><button type="button" id="showPassword">Показать</button></div></label><div class="login-options"><button type="button" class="link-button" id="forgot">Забыли пароль?</button></div><div id="loginError" class="login-error" role="alert"></div><button class="login-submit">Войти <span>→</span></button><div class="demo-box"><b>Демо-доступ</b><button type="button" data-demo="sasha">Саша · руководитель</button><button type="button" data-demo="parent">Елена · родитель</button><button type="button" data-demo="student">Анна · ученица</button></div><small class="security-note">Локальный предпросмотр · Используйте тестовые данные</small></form></div></section>
 
-<div id="app" class="app hidden"><aside class="sidebar"><div class="logo"><span>У</span> Уроки</div><div id="accountBadge" class="account-badge"></div><nav id="nav"></nav><div class="sidebar-bottom"><button id="helpBtn">? <span>Помощь</span></button><button id="logoutBtn">↪ <span>Выйти</span></button></div></aside>
+<div id="app" class="app hidden"><aside class="sidebar"><div class="logo"><span>F</span> Fomenko Teacher</div><div id="accountBadge" class="account-badge"></div><nav id="nav"></nav><div class="sidebar-bottom"><button id="helpBtn">? <span>Помощь</span></button><button id="logoutBtn">↪ <span>Выйти</span></button></div></aside>
 <main><header class="topbar"><div><p id="dateLine"></p><h1 id="pageTitle"></h1></div><div class="top-actions"><button id="primaryAction" class="primary">＋ Запланировать урок</button></div></header>
 <section id="content"></section></main></div>
 
 <dialog id="modal" aria-labelledby="modalTitle"><form id="modalForm"><div class="modal-header"><div><p id="modalKicker"></p><h2 id="modalTitle"></h2></div><button type="button" class="modal-close" data-dismiss-modal aria-label="Закрыть">×</button></div><div id="modalBody"></div><div class="modal-actions"><button type="button" class="secondary" data-dismiss-modal>Отмена</button><button class="primary">Сохранить</button></div></form></dialog>
-<div id="toast" role="status"></div><script src="app.js"></script></body></html>
+<dialog id="lessonDetails" aria-labelledby="lessonDetailsTitle">
+  <div class="modal-header"><h2 id="lessonDetailsTitle"></h2><button type="button" class="modal-close" data-dismiss-modal aria-label="Закрыть">×</button></div>
+  <p class="lesson-details-meta"></p>
+  <a class="primary lesson-join" target="_blank" rel="noopener noreferrer" hidden>Подключиться к Zoom</a>
+  <p class="lesson-no-zoom">Ссылка Zoom пока не добавлена.</p>
+  <form class="lesson-zoom-form">
+    <div class="field"><label for="lessonZoom">Ссылка Zoom</label><input id="lessonZoom" name="zoom" type="url" placeholder="https://zoom.us/j/…"></div>
+    <div class="modal-actions"><button class="primary">Сохранить ссылку</button></div>
+  </form>
+</dialog>
+<dialog id="docs" aria-labelledby="docsTitle" style="padding:22px">
+  <div class="modal-header"><h2 id="docsTitle"></h2><button type="button" class="modal-close" data-dismiss-modal aria-label="Закрыть">×</button></div>
+  <p>Локальное демо. Используйте только тестовые PDF.</p>
+  <form id="docsForm">
+    <label class="pdf-picker">
+      <input id="docsFile" type="file" accept=".pdf,application/pdf" aria-label="Выбрать PDF" required>
+      <span class="secondary pdf-picker-button" aria-hidden="true">+ Выбрать PDF</span>
+      <span id="docsFilename" aria-live="polite">PDF до 10 МБ</span>
+    </label>
+    <div class="modal-actions"><button class="primary" disabled>Прикрепить</button></div>
+  </form>
+  <p id="docsStatus" role="status"></p><ul id="docsList"></ul>
+</dialog>
+<dialog id="consent" aria-labelledby="consentTitle" style="padding:22px">
+  <form id="consentForm">
+    <h2 id="consentTitle">Обработка персональных данных</h2>
+    <p>Это демонстрация экрана согласия. Реальные данные здесь не запрашиваются.</p>
+    <p><label><input type="checkbox" required> Согласие на обработку данных родителя (демо)</label></p>
+    <p><label><input type="checkbox" required> Согласие от имени ребёнка (демо)</label></p>
+    <div class="modal-actions"><button type="button" class="secondary" data-dismiss-modal>Назад</button><button class="primary">Продолжить</button></div>
+  </form>
+</dialog>
+<div id="toast" role="status"></div><script src="app.js"></script><script src="records.js"></script></body></html>
