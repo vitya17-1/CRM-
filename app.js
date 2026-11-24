@@ -13,7 +13,41 @@ const navs={admin:[['dashboard','⌂','Обзор'],['students','♙','Учен�
 $('#showPassword').onclick=()=>{let i=$('#passwordInput');i.type=i.type==='password'?'text':'password';$('#showPassword').textContent=i.type==='password'?'Показать':'Скрыть'};$('#forgot').onclick=()=>toast('Обратитесь к Саше для восстановления доступа');
 $$('[data-demo]').forEach(b=>b.onclick=()=>{let a=accounts[b.dataset.demo];$('#loginInput').value=b.dataset.demo;$('#passwordInput').value=a.password});
 $('#loginForm').onsubmit=e=>{e.preventDefault();let login=$('#loginInput').value.trim().toLowerCase(),a=accounts[login];if(!a||a.password!==$('#passwordInput').value){$('#loginError').textContent='Неверный логин или пароль. Проверьте данные.';return}user={login,...a};enterApp()};
-function enterApp(){$('#login').classList.add('hidden');$('#app').classList.remove('hidden');$('#accountBadge').innerHTML=`<span class="avatar">${initials(user.name)}</span><div><b>${user.name}</b><small>${user.label}</small></div>`;$('#nav').innerHTML=navs[user.role].map(n=>`<button class="nav-button ${n[0]==='dashboard'?'active':''}" data-page="${n[0]}">${n[1]} <span>${n[2]}</span>${n[3]?`<i>${n[3]}</i>`:''}</button>`).join('');$('#dateLine').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});go('dashboard')}
+function enterApp(){$('#login').classList.add('hidden');$('#app').classList.remove('hidden');$('#accountBadge').innerHTML=`<span class="avatar">${initials(user.name)}</span><div><b>${user.name}</b><small>${user.label}</small></div>`;$('#nav').innerHTML=navs[user.role].map(n=>`<button class="nav-button ${n[0]==='dashboard'?'active':''}" data-page="${n[0]}">${n[1]} <span>${n[2]}</span>${n[3]?`<i>${n[3]}</i>`:''}</button>`).join('');setupMobileMenu();$('#dateLine').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});go('dashboard')}
+function setupMobileMenu() {
+  const nav = $('#nav');
+  nav.setAttribute('aria-label', 'Разделы кабинета');
+  const more = document.createElement('details');
+  more.className = 'mobile-more';
+  more.innerHTML = '<summary>⋯ <span>Ещё</span></summary><div class="mobile-menu-panel"></div>';
+  const panel = more.lastElementChild;
+  for (const button of nav.querySelectorAll('button')) {
+    if (['dashboard', 'schedule', 'payments'].includes(button.dataset.page)) continue;
+    button.classList.add('desktop-section');
+    panel.append(button.cloneNode(true));
+  }
+  for (const [id, label] of [['helpBtn', 'Помощь'], ['logoutBtn', 'Выйти']]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'nav-button';
+    button.textContent = label;
+    button.onclick = () => $('#' + id).click();
+    panel.append(button);
+  }
+  panel.addEventListener('click', () => { more.open = false; });
+  nav.append(more);
+}
+document.addEventListener('click', event => {
+  const more = $('.mobile-more[open]');
+  if (more && !more.contains(event.target)) more.open = false;
+});
+document.addEventListener('keydown', event => {
+  const more = $('.mobile-more[open]');
+  if (more && event.key === 'Escape') {
+    more.open = false;
+    more.querySelector('summary').focus();
+  }
+});
 $('#logoutBtn').onclick=()=>{user=null;$('#app').classList.add('hidden');$('#login').classList.remove('hidden');$('#passwordInput').value='';$('#loginError').textContent=''};$('#helpBtn').onclick=()=>toast('Поддержка: напишите Саше в привычном мессенджере');
 function lessonSubscription(studentId, date) {
   const month = date.slice(0, 7);
@@ -83,7 +117,7 @@ function schedulePage() {
     const hour = String(firstHour + index).padStart(2, '0');
     return `<tr><th scope="row">${hour}:00</th>${dates.map(date => `<td>${calendarSlot(date, hour + ':00')}${lessons.filter(lesson => lesson.date === date && lesson.time.startsWith(hour + ':')).map(lesson => {
       const pupil = student(lesson.studentId);
-      return `<button class="calendar-lesson" type="button" data-lesson-details="${lesson.id}"><strong>${lesson.time} · ${escapeHtml(pupil.name)}</strong><small>${escapeHtml(pupil.subject)}</small></button>`;
+      return `<button class="calendar-lesson" type="button" data-lesson-details="${lesson.id}"><strong>${lesson.time} · ${escapeHtml(pupil.name)}</strong></button>`;
     }).join('')}</td>`).join('')}</tr>`;
   }).join('');
   return `<section class="card"><div class="calendar-toolbar"><div><button class="secondary" data-calendar="today">Сегодня</button> <button class="secondary" data-calendar="prev" aria-label="Предыдущий период">←</button> <button class="secondary" data-calendar="next" aria-label="Следующий период">→</button></div><h2>${fmt(start)}${dates.length > 1 ? ' — ' + fmt(dates.at(-1)) : ''}</h2>${calendarViews()}</div><div class="calendar-scroll" tabindex="0" aria-label="Календарь занятий"><table class="calendar-table ${calendarView}"><thead><tr><th scope="col">Время</th>${dates.map(date => `<th scope="col" class="${date === localDay() ? 'calendar-today' : ''}">${fmt(date)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
@@ -107,7 +141,7 @@ function monthCalendar() {
   const cells = Array.from({length: 42}, (_, index) => {
     const day = shiftCalendarDate(start, index);
     const count = lessons.filter(lesson => lesson.date === day).length;
-    return `<button class="month-cell ${day.startsWith(month) ? '' : 'outside-month'}" data-calendar-date="${day}" ${day === localDay() ? 'aria-current="date"' : ''} aria-label="${fmt(day)}, занятий: ${count}"><strong>${Number(day.slice(-2))}</strong>${count ? `<small>${count} <span>ур.</span></small>` : ''}</button>`;
+    return `<button class="month-cell ${day.startsWith(month) ? '' : 'outside-month'}" data-calendar-date="${day}" ${day === localDay() ? 'aria-current="date"' : ''} aria-label="${fmt(day)}, занятий: ${count}"><strong>${Number(day.slice(-2))}</strong>${count ? `<span class="month-dot" aria-hidden="true"></span>` : ''}</button>`;
   }).join('');
   const label = date.toLocaleDateString('ru-RU', {month: 'long', year: 'numeric'});
   return `<section class="card"><div class="calendar-toolbar"><div><button class="secondary" data-calendar="today">Сегодня</button> <button class="secondary" data-calendar="prev" aria-label="Предыдущий месяц">←</button> <button class="secondary" data-calendar="next" aria-label="Следующий месяц">→</button></div><h2>${label}</h2>${calendarViews()}</div><div class="month-grid">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(day => `<span>${day}</span>`).join('')}${cells}</div></section>`;

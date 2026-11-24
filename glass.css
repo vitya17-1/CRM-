@@ -140,6 +140,27 @@ dialog[open]::backdrop { animation: glass-backdrop 240ms ease-out both; }
 .nav-button:hover, .nav-button.active { background: #ece3f3; color: #53366e; }
 .sidebar-bottom { border-color: var(--line); }
 .sidebar-bottom button:hover { color: var(--purple); }
+.mobile-more { display: none; }
+@media (max-width: 680px) {
+  .sidebar #nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; overflow: visible; }
+  .sidebar #nav .desktop-section, .sidebar .sidebar-bottom { display: none; }
+  .sidebar #nav > .nav-button, .mobile-more summary {
+    display: grid; place-content: center; gap: 2px; min-height: 48px;
+    padding: 4px; border-radius: 9px; text-align: center; cursor: pointer;
+  }
+  .mobile-more { display: block; }
+  .mobile-more summary { list-style: none; font-weight: 650; }
+  .mobile-more summary span { font-size: 11px; }
+  .mobile-more summary::-webkit-details-marker { display: none; }
+  .mobile-more[open] summary, .mobile-more:has(.active) summary { background: #ece3f3; color: #53366e; }
+  .mobile-menu-panel {
+    position: absolute; right: 8px; bottom: calc(100% + 8px);
+    width: min(230px, calc(100vw - 16px)); padding: 8px;
+    background: #fffaff; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
+  }
+  .mobile-menu-panel .nav-button { display: flex; width: 100%; text-align: left; gap: 8px; padding: 8px 12px; }
+  .sidebar .mobile-menu-panel .nav-button span { font-size: 14px; }
+}
 .topbar { padding: 14px 18px; border: 1px solid #fff; border-radius: 18px; background: #ffffff96; backdrop-filter: blur(18px); }
 .topbar p, .card-head p, .section-head p, .lesson-row small, .student-cell small, .status, .text-btn { font-size: 12px; }
 .card { border-radius: 20px; padding: 22px; background: #fffcfa; }
@@ -172,7 +193,16 @@ dialog[open]::backdrop { animation: glass-backdrop 240ms ease-out both; }
 .month-cell small { font-size: 10px; }
 .calendar-notices { margin-bottom: 15px; }
 #modalBody .calendar-notify input { width: auto; min-height: 0; accent-color: var(--purple); }
-@media (max-width: 450px) { .month-cell small span { display: none; } }
+.calendar-table th, .calendar-table td { border-right-color: #f1edf3; border-bottom-color: #f1edf3; }
+.calendar-table thead th { background: #fcfafc; }
+.calendar-table td:has(.calendar-slot:only-child) { position: relative; }
+.calendar-slot { color: transparent; }
+.calendar-slot:hover, .calendar-slot:focus-visible { color: var(--purple); }
+.calendar-table td > .calendar-slot:only-child { position: absolute; inset: 0; height: 100%; }
+.calendar-table .calendar-lesson { border-left-width: 2px; min-height: 34px; font-size: 12px; background: #f0e9f5; }
+.calendar-table .calendar-lesson:hover { background: #e8dcf2; }
+.month-cell { border-color: transparent; background: #faf8fb; }
+.month-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--purple); }
 #lessonDetails { padding: 22px; color: var(--ink); }
 .lesson-details-meta, .lesson-no-zoom { font-size: 14px; color: var(--muted); }
 .lesson-join { display: inline-flex; text-decoration: none; margin: 4px 0 14px; }
