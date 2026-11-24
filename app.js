@@ -75,7 +75,7 @@ function previewLessonSubscription(form) {
 function lessonRow(lesson) {
   const pupil = student(lesson.studentId);
   const { subscription, scheduled } = lessonSubscription(lesson.studentId, lesson.date);
-  return `<div class="lesson-row"><div class="time">${lesson.time}<small>${fmt(lesson.date)}</small></div><div class="student-cell"><div>${escapeHtml(pupil.name)}<small>${escapeHtml(pupil.subject)}</small></div></div><span class="status ${subscription && scheduled <= subscription.count ? '' : 'warn'}">${!subscription ? 'Абонемент не оформлен' : scheduled > subscription.count ? 'Лимит абонемента превышен' : 'В абонементе'}</span></div>`;
+  return `<div class="lesson-row"><div class="time">${lesson.time}<small>${fmt(lesson.date)}</small></div><div class="student-cell"><div>${escapeHtml(pupil.name)}<small>${escapeHtml(pupil.subject)}</small></div></div><span class="status ${subscription && scheduled <= subscription.count ? '' : 'warn'}">${!subscription ? 'Абонемент не оформлен' : scheduled > subscription.count ? 'Лимит абонемента превышен' : 'В абонементе'}</span><button type="button" class="secondary open-lesson" data-lesson-details="${lesson.id}">Открыть урок</button></div>`;
 }
 function adminDashboard() {
   const today = localDay();
@@ -87,12 +87,12 @@ function adminDashboard() {
 }
 function personalDashboard() {
   const pupil = student(user.studentId);
-  const lesson = orderedLessons(ownLessons()).find(item => item.date + 'T' + item.time >= localDay() + 'T' + new Date().toTimeString().slice(0, 5));
+  const lesson = orderedLessons(ownLessons()).find(item => !item.completed && item.date + 'T' + item.time >= localDay() + 'T' + new Date().toTimeString().slice(0, 5));
   const tasks = data.homework.filter(task => task.studentId === pupil.id && !task.done);
   const nextZoom = lesson && (zoomUrl(lesson.zoom) || zoomUrl(data.defaultZoom));
   const notices = ownLessons().filter(item => item.notify === 'yes').slice(-3).reverse();
-  const noticePanel = notices.length ? `<section class="card calendar-notices"><h2>Уведомления</h2>${notices.map(item => `<div class="task-preview"><b>Запланирован урок</b><small>${fmt(item.date)} · ${item.time}</small></div>`).join('')}</section>` : '';
-  return `${noticePanel}<section class="parent-hero"><div><p>Ближайшее занятие</p><h2>${lesson ? fmt(lesson.date) + ' · ' + lesson.time : 'Пока не назначено'}</h2><small>${escapeHtml(pupil.name)} · ${escapeHtml(pupil.subject)}</small></div>${nextZoom ? `<a class="primary lesson-join" href="${escapeHtml(nextZoom)}" target="_blank" rel="noopener noreferrer">Подключиться к Zoom</a>` : '<button class="secondary" data-page="payments">Оплата за месяц →</button>'}</section><div class="grid dashboard-grid"><section class="card"><div class="card-head"><h2>Домашние задания</h2><button class="text-btn" data-page="homework">Все задания →</button></div>${tasks.map(task => `<div class="task-preview"><b>${escapeHtml(task.title)}</b><small>До ${fmt(task.due)}</small></div>`).join('')||'<p class="empty">Новых заданий нет</p>'}</section><section class="card"><div class="card-head"><h2>Свободные окна</h2><button class="text-btn" data-page="slots">Посмотреть →</button></div>${data.slots.filter(slot=>slot.date>=localDay()).slice(0,3).map(slot=>`<div class="task-preview"><b>${fmt(slot.date)} · ${slot.time}</b><small>${slot.duration} мин.</small></div>`).join('')||'<p class="empty">Свободных окон пока нет</p>'}</section></div>`;
+  const noticePanel = notices.length ? `<section class="card calendar-notices"><h2>Уведомления</h2>${notices.map(item => `<div class="task-preview"><b>${item.moved ? 'Урок перенесён' : 'Запланирован урок'}</b><small>${fmt(item.date)} · ${item.time}</small></div>`).join('')}</section>` : '';
+  return `${noticePanel}<section class="parent-hero"><div><p>Ближайшее занятие</p><h2>${lesson ? fmt(lesson.date) + ' · ' + lesson.time : 'Пока не назначено'}</h2><small>${escapeHtml(pupil.name)} · ${escapeHtml(pupil.subject)}</small></div>${nextZoom ? `<a class="primary lesson-join" href="${escapeHtml(nextZoom)}" target="_blank" rel="noopener noreferrer">Подключиться к Zoom</a>` : '<button class="secondary" data-page="payments">Оплата за месяц →</button>'}${lesson ? `<button type="button" class="secondary" data-lesson-details="${lesson.id}">Открыть урок</button>` : ''}</section><div class="grid dashboard-grid"><section class="card"><div class="card-head"><h2>Домашние задания</h2><button class="text-btn" data-page="homework">Все задания →</button></div>${tasks.map(task => `<div class="task-preview"><b>${escapeHtml(task.title)}</b><small>До ${fmt(task.due)}</small>${homeworkAttachmentButtons(task)}</div>`).join('')||'<p class="empty">Новых заданий нет</p>'}</section><section class="card"><div class="card-head"><h2>Свободные окна</h2><button class="text-btn" data-page="slots">Посмотреть →</button></div>${data.slots.filter(slot=>slot.date>=localDay()).slice(0,3).map(slot=>`<div class="task-preview"><b>${fmt(slot.date)} · ${slot.time}</b><small>${slot.duration} мин.</small></div>`).join('')||'<p class="empty">Свободных окон пока нет</p>'}</section></div>`;
 }
 function studentsPage(){return `<div class="section-head"><div><h2>Ученики</h2><p>Контакты, обучение и стоимость занятий</p></div><button class="primary" data-add="student">＋ Новый ученик</button></div><div class="toolbar"><input class="search" placeholder="⌕  Найти ученика или родителя"></div><div class="data-table"><div class="table-head"><span>Ученик</span><span>Родитель</span><span>Направление</span><span>За занятие</span></div>${data.students.map(s=>`<div class="table-row"><div class="student-cell"><span class="mini-avatar">${initials(s.name)}</span><div>${escapeHtml(s.name)}<small>${escapeHtml(s.phone)}</small></div></div><span>${escapeHtml(s.parent)}</span><span>${escapeHtml(s.subject)}</span><div>${money(s.price)}<br><button class="text-btn" data-docs="${s.id}">📎 Документы</button></div></div>`).join('')}</div>`}
 let calendarDate;
@@ -167,7 +167,65 @@ function openLessonDetails(lesson) {
   join.hidden = !link;
   join.href = link || '#';
   dialog.querySelector('.lesson-no-zoom').hidden = Boolean(link);
-  const form = dialog.querySelector('form');
+  const form = dialog.querySelector('.lesson-zoom-form');
+  const admin = user.role === 'admin';
+  const move = $('#lessonMoveForm');
+  const status = dialog.querySelector('.lesson-plan-status');
+  const updateStatus = () => {
+    const {subscription} = lessonSubscription(lesson.studentId, lesson.date);
+    const month = lesson.date.slice(0, 7);
+    const completed = data.lessons.filter(item => item.studentId === lesson.studentId &&
+      item.date.startsWith(month + '-') && item.completed).length;
+    const plan = subscription
+      ? `Абонемент: проведено ${completed} из ${subscription.count} · ${subscription.paid ? 'оплачен' : 'ждёт оплаты'}`
+      : 'Абонемент на этот месяц не оформлен';
+    status.textContent = (lesson.completed ? 'Урок проведён. ' : '') + plan;
+    $('#lessonComplete').textContent = lesson.completed ? 'Отменить отметку' : 'Отметить проведённым';
+  };
+  updateStatus();
+  $('#lessonActions').hidden = !admin;
+  move.hidden = true;
+  $('#moveLesson').disabled = Boolean(lesson.completed);
+  $('#moveLesson').onclick = () => {
+    move.hidden = !move.hidden;
+    move.elements.date.value = lesson.date;
+    move.elements.time.value = lesson.time;
+    $('#lessonMoveError').textContent = '';
+    if (!move.hidden) move.elements.date.focus();
+  };
+  move.onsubmit = event => {
+    event.preventDefault();
+    if (user?.role !== 'admin' || lesson.completed) return;
+    const {date, time} = Object.fromEntries(new FormData(move));
+    const {subscription, scheduled} = lessonSubscription(lesson.studentId, date);
+    const otherMonth = date.slice(0, 7) !== lesson.date.slice(0, 7);
+    const busy = data.lessons.some(item => item.id !== lesson.id && item.date === date && item.time === time);
+    if (busy || (otherMonth && subscription && scheduled >= subscription.count)) {
+      $('#lessonMoveError').textContent = busy ? 'Это время уже занято.' : 'В абонементе на этот месяц нет свободных занятий.';
+      return;
+    }
+    Object.assign(lesson, {date, time, notify: 'yes', moved: true});
+    calendarDate = date;
+    save();
+    dialog.close();
+    go('schedule');
+    toast('Урок перенесён');
+  };
+  $('#lessonComplete').onclick = () => {
+    if (user?.role !== 'admin') return;
+    lesson.completed = !lesson.completed;
+    $('#moveLesson').disabled = lesson.completed;
+    if (lesson.completed) move.hidden = true;
+    save();
+    updateStatus();
+    toast(lesson.completed ? 'Урок отмечен проведённым' : 'Отметка отменена');
+  };
+  $('#lessonHomework').onclick = () => {
+    dialog.close();
+    openForm('homework');
+    $('#modalForm').elements.studentId.value = lesson.studentId;
+    $('#modalForm').elements.title.focus();
+  };
   form.hidden = user.role !== 'admin';
   form.elements.zoom.value = lesson.zoom || '';
   form.elements.defaultZoom.value = data.defaultZoom || '';
@@ -235,11 +293,11 @@ function monthlyInvoices(month) {
   const pupils = user.role === 'admin' ? data.students : data.students.filter(pupil => pupil.id === user.studentId);
   return pupils.flatMap(pupil => {
     const saved = data.monthlyPayments?.[month + ':' + pupil.id];
-    return saved ? [{ pupil, ...saved, scheduled: lessonSubscription(pupil.id, month + '-01').scheduled }] : [];
+    return saved ? [{ pupil, ...saved, completed: data.lessons.filter(lesson => lesson.studentId === pupil.id && lesson.completed && lesson.date.startsWith(month + '-')).length, scheduled: lessonSubscription(pupil.id, month + '-01').scheduled }] : [];
   });
 }
 function invoiceRows(invoices) {
-  return invoices.map(({pupil, count, amount, paid, scheduled}) => `<div class="lesson-row invoice-row"><div class="student-cell">${escapeHtml(pupil.name)}</div><div>Запланировано: ${scheduled} из ${count}<br><b>${money(amount)}</b></div><div class="lesson-price"><span class="status ${paid ? '' : 'warn'}">${paid ? 'Оплачено' : 'Ждёт оплаты'}</span>${user.role === 'admin' && currentPage === 'payments' ? `<button class="${paid ? 'secondary' : 'primary'} confirm-payment" data-invoice="${pupil.id}">${paid ? 'Вернуть в ожидание' : 'Подтвердить перевод'}</button>` : ''}</div></div>`).join('') || '<p class="empty">За этот месяц абонементов пока нет</p>';
+  return invoices.map(({pupil, count, amount, paid, scheduled, completed}) => `<div class="lesson-row invoice-row"><div class="student-cell">${escapeHtml(pupil.name)}</div><div>Запланировано: ${scheduled} из ${count}<br>Проведено: ${completed} · осталось: ${Math.max(0, count - completed)}<br><b>${money(amount)}</b></div><div class="lesson-price"><span class="status ${paid ? '' : 'warn'}">${paid ? 'Оплачено' : 'Ждёт оплаты'}</span>${user.role === 'admin' && currentPage === 'payments' ? `<button class="${paid ? 'secondary' : 'primary'} confirm-payment" data-invoice="${pupil.id}">${paid ? 'Вернуть в ожидание' : 'Подтвердить перевод'}</button>` : ''}</div></div>`).join('') || '<p class="empty">За этот месяц абонементов пока нет</p>';
 }
 function paymentsPage() {
   const month = selectedMonth || localDay().slice(0, 7);

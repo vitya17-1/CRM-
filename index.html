@@ -10,6 +10,18 @@
 <dialog id="lessonDetails" aria-labelledby="lessonDetailsTitle">
   <div class="modal-header"><h2 id="lessonDetailsTitle"></h2><button type="button" class="modal-close" data-dismiss-modal aria-label="Закрыть">×</button></div>
   <p class="lesson-details-meta"></p>
+  <p class="lesson-plan-status subscription-note"></p>
+  <div id="lessonActions" class="lesson-actions">
+    <button type="button" class="secondary" id="moveLesson">Перенести</button>
+    <button type="button" class="secondary" id="lessonComplete">Отметить проведённым</button>
+    <button type="button" class="primary" id="lessonHomework">Задать домашнее</button>
+  </div>
+  <form id="lessonMoveForm" class="demo-form" hidden>
+    <label>Новая дата <input name="date" type="date" required></label>
+    <label>Новое время <input name="time" type="time" required></label>
+    <p id="lessonMoveError" role="alert"></p>
+    <button class="primary">Сохранить перенос</button>
+  </form>
   <a class="primary lesson-join" target="_blank" rel="noopener noreferrer" hidden>Подключиться к Zoom</a>
   <p class="lesson-no-zoom">Ссылка Zoom пока не добавлена.</p>
   <form class="lesson-zoom-form">
