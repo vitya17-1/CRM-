@@ -143,8 +143,8 @@ dialog[open]::backdrop { animation: glass-backdrop 240ms ease-out both; }
 .mobile-more { display: none; }
 @media (max-width: 680px) {
   .sidebar #nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; overflow: visible; }
-  .sidebar #nav .desktop-section, .sidebar .sidebar-bottom { display: none; }
-  .sidebar #nav > .nav-button, .mobile-more summary {
+  .sidebar #nav > .desktop-section, .sidebar .sidebar-bottom { display: none; }
+  .sidebar #nav > .nav-button:not(.desktop-section), .mobile-more summary {
     display: grid; place-content: center; gap: 2px; min-height: 48px;
     padding: 4px; border-radius: 9px; text-align: center; cursor: pointer;
   }
@@ -427,6 +427,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   .table-row { grid-template-columns: 1fr 1fr; }
   .card { padding: 15px; }
   .lesson-row { grid-template-columns: 54px minmax(0, 1fr) auto; gap: 8px; }
+  .dashboard-lesson { grid-template-columns: 62px minmax(0, 1fr); align-items: start; }
+  .dashboard-lesson > .status, .dashboard-lesson > .open-lesson {
+    grid-column: 2; justify-self: start; max-width: 100%;
+  }
+  .dashboard-lesson > .status { white-space: normal; }
   .hero-price { margin-top: 16px; }
   .mobile-logo { margin-bottom: 24px; }
   #toast { bottom: 115px; }

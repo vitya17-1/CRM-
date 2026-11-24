@@ -75,7 +75,7 @@ function previewLessonSubscription(form) {
 function lessonRow(lesson) {
   const pupil = student(lesson.studentId);
   const { subscription, scheduled } = lessonSubscription(lesson.studentId, lesson.date);
-  return `<div class="lesson-row"><div class="time">${lesson.time}<small>${fmt(lesson.date)}</small></div><div class="student-cell"><div>${escapeHtml(pupil.name)}<small>${escapeHtml(pupil.subject)}</small></div></div><span class="status ${subscription && scheduled <= subscription.count ? '' : 'warn'}">${!subscription ? 'Абонемент не оформлен' : scheduled > subscription.count ? 'Лимит абонемента превышен' : 'В абонементе'}</span><button type="button" class="secondary open-lesson" data-lesson-details="${lesson.id}">Открыть урок</button></div>`;
+  return `<div class="lesson-row dashboard-lesson"><div class="time">${lesson.time}<small>${fmt(lesson.date)}</small></div><div class="student-cell"><div>${escapeHtml(pupil.name)}<small>${escapeHtml(pupil.subject)}</small></div></div><span class="status ${subscription && scheduled <= subscription.count ? '' : 'warn'}">${!subscription ? 'Абонемент не оформлен' : scheduled > subscription.count ? 'Лимит абонемента превышен' : 'В абонементе'}</span><button type="button" class="secondary open-lesson" data-lesson-details="${lesson.id}">Открыть урок</button></div>`;
 }
 function adminDashboard() {
   const today = localDay();
