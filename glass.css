@@ -89,15 +89,27 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 :root { --glass-ease: cubic-bezier(.22, 1, .36, 1); }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  #content :is(.card, .parent-hero, .calendar-lesson) {
+    position: relative;
+    transition: translate 300ms var(--glass-ease), box-shadow 300ms var(--glass-ease);
+  }
+  #content :is(.card, .parent-hero, .calendar-lesson)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(ellipse 210px 150px at var(--glow-x, 50%) var(--glow-y, 50%), #fff9, #c8a9e124 65%, transparent);
+    box-shadow: inset 0 0 0 1px #c8b1da60;
+    transition: opacity 260ms var(--glass-ease);
+  }
+  #content .glass-lit { translate: 0 -2px; box-shadow: 0 12px 26px #49325818; }
+  #content .glass-lit::after { opacity: 1; }
+}
 .login-screen:not(.hidden) .login-form { animation: glass-arrive 620ms var(--glass-ease) both; }
 .app:not(.hidden) .topbar { animation: glass-arrive 340ms var(--glass-ease) both; }
-#content > *,
-#content > .grid > .card {
-  animation: glass-arrive 400ms var(--glass-ease) both;
-}
-#content > .grid { animation: none; }
-#content > .grid > .card:nth-child(2) { animation-delay: 55ms; }
-#content > .grid > .card:nth-child(3) { animation-delay: 105ms; }
 dialog[open] { animation: glass-arrive 320ms var(--glass-ease) both; }
 @keyframes glass-backdrop { from { opacity: 0; } to { opacity: 1; } }
 dialog[open]::backdrop { animation: glass-backdrop 240ms ease-out both; }
@@ -226,12 +238,7 @@ dialog[open]::backdrop { animation: glass-backdrop 240ms ease-out both; }
 }
 .nav-button[data-page].active::before { opacity: 1; transform: scaleY(1); }
 @media (prefers-reduced-motion: no-preference) {
-  .nav-button[data-page]::before, .invite-students > summary::after {
-    transition: opacity 180ms ease, transform 240ms var(--glass-ease);
-  }
-  .invite-choices label, .invite-students > summary {
-    transition: background-color 180ms ease, border-color 180ms ease;
-  }
+  #lessonMoveForm:not([hidden]) { animation: glass-arrive 220ms var(--glass-ease) both; --arrival-offset: 5px; }
   @supports (interpolate-size: allow-keywords) and selector(::details-content) {
     .invite-students { interpolate-size: allow-keywords; }
     .invite-students::details-content {
@@ -329,6 +336,16 @@ select {
 }
 .lesson-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
 .open-lesson { grid-column: 2 / -1; justify-self: start; }
+.billing-header { align-items: center; gap: 12px; flex-wrap: wrap; }
+.billing-month { display: grid; gap: 4px; font-size: 13px; }
+.billing-month input { min-height: 44px; min-width: 0; border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 8px; font: inherit; }
+@media (max-width: 680px) {
+  .billing-header { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .billing-header .primary { grid-row: 3; }
+  .billing-month input { width: 100%; box-sizing: border-box; }
+  .invoice-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .invoice-row > .student-cell { grid-column: 1 / -1; }
+}
 .parent-hero { flex-wrap: wrap; gap: 12px; }
 #lessonMoveError:empty { display: none; }
 @media (max-width: 680px) {
@@ -338,6 +355,9 @@ select {
   #lessonDetails[open] { animation: lesson-drawer-in 320ms var(--glass-ease) both; }
 }
 @keyframes lesson-drawer-in { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) and (max-width: 680px) {
+  #lessonDetails[open] { animation: glass-arrive 380ms var(--glass-ease) both; --arrival-offset: 30px; }
+}
 #homeworkFileNames, .homework-file { max-width: 100%; overflow-wrap: anywhere; }
 .homework-file { display: block; text-align: left; }
 

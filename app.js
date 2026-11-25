@@ -267,6 +267,7 @@ document.addEventListener('click', event => {
     calendarDate = day.dataset.calendarDate;
     calendarView = 'day';
     go('schedule');
+    animateSection('#content .calendar-scroll, #content .month-grid');
     $('[data-calendar="day"]')?.focus();
   }
   const command = event.target.closest('[data-calendar]')?.dataset.calendar;
@@ -280,6 +281,7 @@ document.addEventListener('click', event => {
     }
     else calendarDate = shiftCalendarDate(calendarDate, (command === 'prev' ? -1 : 1) * (calendarView === 'week' ? 7 : 1));
     go('schedule');
+    animateSection('#content .calendar-scroll, #content .month-grid');
     $(`[data-calendar="${command}"]`)?.focus();
   }
   const id = event.target.closest('[data-lesson-details]')?.dataset.lessonDetails;
@@ -301,10 +303,53 @@ function invoiceRows(invoices) {
 }
 function paymentsPage() {
   const month = selectedMonth || localDay().slice(0, 7);
-  return `<section class="card"><div class="card-head"><h2>Абонементы</h2>${user.role === 'admin' ? '<button class="primary" data-add="subscription">Создать абонемент</button>' : ''}<label>Месяц <input type="month" id="billingMonth" value="${month}"></label></div>${invoiceRows(monthlyInvoices(month))}</section>`;
+  return `<section class="card"><div class="card-head billing-header"><h2>Абонементы</h2>${user.role === 'admin' ? '<button class="primary" data-add="subscription">Создать абонемент</button>' : ''}<label class="billing-month">Месяц <input type="month" id="billingMonth" value="${month}"></label></div>${invoiceRows(monthlyInvoices(month))}</section>`;
 }
 function slotsPage(){return `<div class="section-head"><div><h2>Свободные окна</h2><p>${user.role==='admin'?'Настройте время, которое увидят семьи':'Уточните запись у Саши'}</p></div>${user.role==='admin'?'<button class="primary" data-add="slot">＋ Добавить окно</button>':''}</div><div class="grid slot-layout">${data.slots.filter(slot=>slot.date>=localDay()).map(x=>`<div class="card"><small style="color:var(--purple);font-weight:800">${fmt(x.date)}</small><h2 style="font-size:24px;margin:8px 0">${x.time}</h2><p style="font-size:8px;color:var(--muted)">${x.duration} минут</p>${user.role==='admin'?'<span class="status">Опубликовано</span>':'<span class="status">Свободно</span>'}</div>`).join('')}</div>`}
-function go(page){if (!user || !navs[user.role].some(item => item[0] === page)) return;currentPage=page;$$('.nav-button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));let titles={dashboard:user.role==='admin'?'Добрый день, Саша!':'Личный кабинет',students:'Ученики',schedule:'Расписание',homework:'Домашние задания',payments:'Оплаты за месяц',slots:'Свободные окна',access:'Доступ',messages:'Сообщения'};$('#pageTitle').textContent=titles[page];$('#primaryAction').style.display=user.role==='admin'?'block':'none';let html=page==='dashboard'?(user.role==='admin'?adminDashboard():personalDashboard()):page==='students'?studentsPage():page==='schedule'?schedulePage():page==='homework'?homeworkPage():page==='payments'?paymentsPage():page==='access'?accessPage():page==='messages'?messagesPage():slotsPage();$('#content').innerHTML=html;refreshChatNotifications()}
+function go(page){if (!user || !navs[user.role].some(item => item[0] === page)) return;const changed = currentPage !== page;currentPage=page;$$('.nav-button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));let titles={dashboard:user.role==='admin'?'Добрый день, Саша!':'Личный кабинет',students:'Ученики',schedule:'Расписание',homework:'Домашние задания',payments:'Оплаты за месяц',slots:'Свободные окна',access:'Доступ',messages:'Сообщения'};$('#pageTitle').textContent=titles[page];$('#primaryAction').hidden=user.role!=='admin'||!['dashboard','schedule'].includes(page);let html=page==='dashboard'?(user.role==='admin'?adminDashboard():personalDashboard()):page==='students'?studentsPage():page==='schedule'?schedulePage():page==='homework'?homeworkPage():page==='payments'?paymentsPage():page==='access'?accessPage():page==='messages'?messagesPage():slotsPage();$('#content').innerHTML=html;refreshChatNotifications();if(changed) animateSection() }
+
+let sectionAnimations = [];
+const glassPointer = window.matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)');
+const glassSurface = '#content .card, #content .parent-hero, #content .calendar-lesson';
+let litSurface;
+let lightFrame = 0;
+document.addEventListener('pointermove', event => {
+  if (!glassPointer.matches || event.pointerType === 'touch') return;
+  const surface = event.target.closest(glassSurface);
+  if (surface !== litSurface) {
+    litSurface?.classList.remove('glass-lit');
+    litSurface = surface;
+  }
+  cancelAnimationFrame(lightFrame);
+  if (!surface) return;
+  const {clientX, clientY} = event;
+  lightFrame = requestAnimationFrame(() => {
+    const bounds = surface.getBoundingClientRect();
+    surface.style.setProperty('--glow-x', (clientX - bounds.left) + 'px');
+    surface.style.setProperty('--glow-y', (clientY - bounds.top) + 'px');
+    surface.classList.add('glass-lit');
+  });
+}, {passive: true});
+document.documentElement.addEventListener('pointerleave', () => {
+  cancelAnimationFrame(lightFrame);
+  litSurface?.classList.remove('glass-lit');
+  litSurface = null;
+});
+
+function animateSection(selector = '#content > .card, #content > .grid > .card, #content > .parent-hero, #content > .section-head, #content > .data-table') {
+  for (const animation of sectionAnimations) animation.cancel();
+  sectionAnimations = [];
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const blocks = [...$$(selector)];
+  const targets = blocks.length ? blocks : [$('#content')];
+  sectionAnimations = targets.map((block, index) => block.animate(
+    [
+      {opacity: 0, transform: 'translateY(13px) scale(.985)'},
+      {opacity: 1, transform: 'translateY(0) scale(1)'}
+    ],
+    {duration: 440, delay: Math.min(index, 3) * 52, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'backwards'}
+  ));
+}
 const field=(l,n,t='text',full=false)=>`<div class="field ${full?'full':''}"><label for="field-${n}">${l}</label><input id="field-${n}" name="${n}" type="${t}" ${n==='price'?'min="0" step="0.01"':(n==='duration'||n==='count')?'min="1"':''} required></div>`,studentSelect=()=>`<div class="field full"><label for="field-studentId">Ученик</label><select id="field-studentId" name="studentId" required>${data.students.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}</select></div>`;
 function openForm(type, preset = {}){if(user?.role!=='admin') return;let map={subscription:['Оплаты','Новый абонемент'],student:['Карточка ученика','Новый ученик'],lesson:['Расписание','Запланировать урок'],homework:['Обучение','Новое задание'],slot:['Расписание','Свободное окно']},body='';$('#modalKicker').textContent=map[type][0];$('#modalTitle').textContent=map[type][1];$('#modalForm').dataset.type=type;if(type==='subscription')body=studentSelect()+field('Месяц','month','month')+field('Количество занятий','count','number')+field('Сумма, ₽','price','number');if(type==='student')body=field('Имя ученика','name')+field('Имя родителя','parent')+field('Телефон','phone','tel')+field('Направление','subject')+field('Цена занятия','price','number');if(type==='lesson')body=studentSelect()+field('Дата','date','date')+field('Время','time','time')+'<p id="lessonSubscriptionNote" class="field full subscription-note" aria-live="polite"></p><label class="field full calendar-notify"><span><input type="checkbox" name="notify" value="yes"> Показать уведомление в кабинете семьи</span></label>';if(type==='homework')body=studentSelect()+field('Задание','title', 'text',true)+field('Срок','due','date')+homeworkAttachmentField();if(type==='slot')body=field('Дата','date','date')+field('Время','time','time')+field('Длительность, минут','duration','number');$('#modalBody').innerHTML=body;if(type==='subscription')$('#modalForm').elements.month.value=selectedMonth||localDay().slice(0,7);if(type==='lesson'){const form=$('#modalForm');form.elements.date.value=preset.date||'';form.elements.time.value=preset.time||'';const update=()=>previewLessonSubscription(form);form.elements.studentId.onchange=update;form.elements.date.onchange=update;update()}$('#modal').showModal();$('#modalBody').querySelector('input, select')?.focus()}
 $('#modalForm').onsubmit=async e=>{e.preventDefault();if(user?.role!=='admin')return;let f=Object.fromEntries(new FormData(e.target)),t=e.target.dataset.type;f.id=Date.now();if(t==='subscription'){
