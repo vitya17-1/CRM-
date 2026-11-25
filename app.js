@@ -17,6 +17,11 @@ function enterApp(){$('#login').classList.add('hidden');$('#app').classList.remo
 function setupMobileMenu() {
   const nav = $('#nav');
   nav.setAttribute('aria-label', 'Разделы кабинета');
+  for (const button of nav.querySelectorAll('button[data-page]')) {
+    const label = button.querySelector('span').textContent;
+    button.setAttribute('aria-label', label);
+    button.title = label;
+  }
   const more = document.createElement('details');
   more.className = 'mobile-more';
   more.innerHTML = '<summary>⋯ <span>Ещё</span></summary><div class="mobile-menu-panel"></div>';
@@ -37,6 +42,21 @@ function setupMobileMenu() {
   panel.addEventListener('click', () => { more.open = false; });
   nav.append(more);
 }
+function setSidebarCollapsed(collapsed) {
+  const toggle = $('#sidebarToggle');
+  $('#app').classList.toggle('sidebar-collapsed', collapsed);
+  toggle.setAttribute('aria-expanded', String(!collapsed));
+  toggle.title = collapsed ? 'Развернуть меню' : 'Свернуть меню';
+  toggle.setAttribute('aria-label', toggle.title);
+  toggle.textContent = collapsed ? '»' : '«';
+}
+setSidebarCollapsed(localStorage.getItem('uroki-sidebar-collapsed') === 'true');
+$('#sidebarToggle').onclick = () => {
+  $('#app').classList.add('sidebar-motion');
+  const collapsed = !$('#app').classList.contains('sidebar-collapsed');
+  setSidebarCollapsed(collapsed);
+  localStorage.setItem('uroki-sidebar-collapsed', String(collapsed));
+};
 document.addEventListener('click', event => {
   const more = $('.mobile-more[open]');
   if (more && !more.contains(event.target)) more.open = false;
@@ -321,12 +341,19 @@ document.addEventListener('pointermove', event => {
     litSurface = surface;
   }
   cancelAnimationFrame(lightFrame);
-  if (!surface) return;
   const {clientX, clientY} = event;
   lightFrame = requestAnimationFrame(() => {
+    const sceneX = clientX / window.innerWidth - .5;
+    const sceneY = clientY / window.innerHeight - .5;
+    const root = document.documentElement;
+    root.style.setProperty('--scene-x', (sceneX * 46) + 'px');
+    root.style.setProperty('--scene-y', (sceneY * 34) + 'px');
+    if (!surface) return;
     const bounds = surface.getBoundingClientRect();
     surface.style.setProperty('--glow-x', (clientX - bounds.left) + 'px');
     surface.style.setProperty('--glow-y', (clientY - bounds.top) + 'px');
+    surface.style.setProperty('--tilt-x', (-(clientY - bounds.top - bounds.height / 2) / Math.max(bounds.height, 1) * 3) + 'deg');
+    surface.style.setProperty('--tilt-y', ((clientX - bounds.left - bounds.width / 2) / Math.max(bounds.width, 1) * 3) + 'deg');
     surface.classList.add('glass-lit');
   });
 }, {passive: true});
@@ -334,6 +361,8 @@ document.documentElement.addEventListener('pointerleave', () => {
   cancelAnimationFrame(lightFrame);
   litSurface?.classList.remove('glass-lit');
   litSurface = null;
+  document.documentElement.style.removeProperty('--scene-x');
+  document.documentElement.style.removeProperty('--scene-y');
 });
 
 function animateSection(selector = '#content > .card, #content > .grid > .card, #content > .parent-hero, #content > .section-head, #content > .data-table') {
